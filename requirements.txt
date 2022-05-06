@@ -1,0 +1,4 @@
+mip>=1.13.0
+matplotlib>=3.5.2
+networkx>=2.8
+pyvis>=0.2.0
