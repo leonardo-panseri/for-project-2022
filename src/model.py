@@ -4,7 +4,7 @@ import json
 
 # Import data, change the name of the file to change dataset
 # from minimart_data import Cx, Cy, usable, Dc, r
-from data.minimart_data0 import Cx, Cy, usable, Dc, r
+from data.minimart_data1 import Cx, Cy, usable, Dc, r
 
 
 def distance(x1, y1, x2, y2):
@@ -45,11 +45,11 @@ def build_model_and_optimize(n, dist):
     Constructs the linear model for the mini market construction problem and finds the optimal solution
     :param n: the size of the input
     :param dist: a matrix containing distances between all points
-    :return: the objective value and optimal values for all variables
+    :return: the objective value and optimal values for all variables and optimization status
     """
     # Initialize model and disable verbose logging
     m = mip.Model()
-    m.verbose = 0
+    m.verbose = 1
 
     # #########
     # Variables
@@ -89,7 +89,7 @@ def build_model_and_optimize(n, dist):
 
     # Ensures that every house i is served by at least one market j
     for i in range(n):
-        m.add_constr(mip.xsum(y[i][j] for j in range(n)) == 1)
+        m.add_constr(mip.xsum(y[i][j] for j in range(n)) == 1 - 1*x[i])
 
     # ##################
     # Objective function
@@ -99,9 +99,9 @@ def build_model_and_optimize(n, dist):
     m.objective = mip.minimize(mip.xsum(Dc[i] * x[i] for i in range(n)))
 
     # Perform optimization of the model
-    m.optimize()
+    status = m.optimize()
 
-    return m.objective_value, x, y
+    return m.objective_value, x, y, status
 
 
 def print_optimal_solution(save=False):
@@ -112,7 +112,11 @@ def print_optimal_solution(save=False):
     n = get_input_length()
     dist = build_distance_matrix(n)
 
-    obj_value, x, y = build_model_and_optimize(n, dist)
+    obj_value, x, y, status = build_model_and_optimize(n, dist)
+
+    if status != mip.OptimizationStatus.OPTIMAL:
+        print(f"Problem has no optimal solution: {status}")
+        exit()
 
     # Calculate the number of markets that are open
     num_of_markets = 0
@@ -158,7 +162,7 @@ def visualize_solution():
 
     for i in range(n):
         for j in range(n):
-            if x[j] == 1 and dist[i][j] <= rn:
+            if i != j and x[j] == 1 and dist[i][j] <= rn:
                 color = "red" if y[i][j] == 1 else "black"
                 net.add_edge(i, j, label=round(dist[i][j], 1), color=color)
 
@@ -166,6 +170,32 @@ def visualize_solution():
     net.toggle_drag_nodes(False)
     net.toggle_stabilization(False)
     net.show("result_visualization.html")
+
+
+def visualize_input():
+    """
+    Constructs a network graph to visualize the solution and shows it
+    """
+    from pyvis.network import Network
+
+    n = get_input_length()
+    dist = build_distance_matrix(n)
+
+    net = Network('100%', '100%')
+
+    scale = 20
+    for i in range(n):
+        net.add_node(i, x=Cx[i]*scale, y=-Cy[i]*scale, label=f"N{i}")
+
+    for i in range(n):
+        for j in range(n):
+            if i != j and dist[i][j] <= r:
+                net.add_edge(i, j, label=round(dist[i][j], 1))
+
+    net.toggle_physics(False)
+    net.toggle_drag_nodes(False)
+    net.toggle_stabilization(False)
+    net.show("input_visualization.html")
 
 
 if __name__ == '__main__':
@@ -178,6 +208,9 @@ if __name__ == '__main__':
             exit()
         elif argv[1] == "visualize":
             visualize_solution()
+            exit()
+        elif argv[1] == "visualizeinput":
+            visualize_input()
             exit()
 
 print_optimal_solution()
