@@ -1,0 +1,108 @@
+<html>
+<head>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.16.1/vis.css" type="text/css" />
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.16.1/vis-network.min.js"> </script>
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+
+<style type="text/css">
+
+        #mynetwork {
+            width: 100%;
+            height: 100%;
+            background-color: #ffffff;
+            border: 1px solid lightgray;
+            position: relative;
+            float: left;
+        }
+
+        
+
+        
+
+        
+</style>
+
+</head>
+
+<body>
+<div id = "mynetwork"></div>
+
+
+<script type="text/javascript">
+
+    // initialize global variables.
+    var edges;
+    var nodes;
+    var network; 
+    var container;
+    var options, data;
+
+    
+    // This method is responsible for drawing the graph, returns the drawn network
+    function drawGraph() {
+        var container = document.getElementById('mynetwork');
+        
+        
+
+        // parsing and collecting nodes and edges from the python
+        nodes = new vis.DataSet([{"font": {"size": 30}, "id": 33, "label": "Max distance: 30", "shape": "box", "size": 40, "title": "", "widthConstraint": 50, "x": -300, "y": "-110px"}, {"font": {"size": 30}, "id": 34, "label": "Nodes legend (hover)", "shape": "box", "size": 40, "title": "\u003cb\u003eNodes\u003cb\u003e\u003cbr/\u003e\u003cspan style=\u0027color: green\u0027\u003e\u0026bull;\u003c/span\u003e : selected in optimal solution\u003cbr/\u003e\u003cspan style=\u0027color: black\u0027\u003e\u0026bull;\u003c/span\u003e : not selected but usable\u003cbr/\u003e\u003cspan style=\u0027color: red\u0027\u003e\u0026bull;\u003c/span\u003e : not usable", "widthConstraint": 50, "x": -300, "y": "-60px"}, {"font": {"size": 30}, "id": 35, "label": "Edges legend (hover)", "shape": "box", "size": 40, "title": "\u003cb\u003eEdges\u003cb\u003e\u003cbr/\u003e\u003cspan style=\u0027color: green\u0027\u003e\u0026horbar;\u003c/span\u003e : selected in optimal solution\u003cbr/\u003e\u003cspan style=\u0027color: black\u0027\u003e\u0026horbar;\u003c/span\u003e : not selected but in range\u003cbr/\u003e\u003cspan style=\u0027color: red\u0027\u003e\u0026horbar;\u003c/span\u003e : not in range", "widthConstraint": 50, "x": -300, "y": "-10px"}, {"color": "black", "id": 0, "label": "N0", "shape": "dot", "size": 4, "title": "Usable: True\u003cbr/\u003eCost: 27", "x": 1380, "y": -480}, {"color": "black", "id": 1, "label": "N1", "shape": "dot", "size": 4, "title": "Usable: True\u003cbr/\u003eCost: 31", "x": 700, "y": -1620}, {"color": "black", "id": 2, "label": "N2", "shape": "dot", "size": 4, "title": "Usable: True\u003cbr/\u003eCost: 36", "x": 0, "y": -940}, {"color": "black", "id": 3, "label": "N3", "shape": "dot", "size": 4, "title": "Usable: True\u003cbr/\u003eCost: 40", "x": 120, "y": -560}, {"color": "black", "id": 4, "label": "N4", "shape": "dot", "size": 4, "title": "Usable: True\u003cbr/\u003eCost: 32", "x": 620, "y": -1500}, {"color": "black", "id": 5, "label": "N5", "shape": "dot", "size": 4, "title": "Usable: True\u003cbr/\u003eCost: 13", "x": 820, "y": -1060}, {"color": "black", "id": 6, "label": "N6", "shape": "dot", "size": 4, "title": "Usable: True\u003cbr/\u003eCost: 25", "x": 1900, "y": -1400}, {"color": "black", "id": 7, "label": "N7", "shape": "dot", "size": 4, "title": "Usable: True\u003cbr/\u003eCost: 18", "x": 920, "y": -1500}, {"color": "black", "id": 8, "label": "N8", "shape": "dot", "size": 4, "title": "Usable: True\u003cbr/\u003eCost: 50", "x": 720, "y": -1020}, {"color": "black", "id": 9, "label": "N9", "shape": "dot", "size": 4, "title": "Usable: True\u003cbr/\u003eCost: 55", "x": 1220, "y": -860}, {"color": "black", "id": 10, "label": "N10", "shape": "dot", "size": 4, "title": "Usable: True\u003cbr/\u003eCost: 22", "x": 900, "y": -1320}, {"color": "black", "id": 11, "label": "N11", "shape": "dot", "size": 4, "title": "Usable: True\u003cbr/\u003eCost: 17", "x": 780, "y": -820}, {"color": "black", "id": 12, "label": "N12", "shape": "dot", "size": 4, "title": "Usable: True\u003cbr/\u003eCost: 19", "x": 40, "y": -520}, {"color": "black", "id": 13, "label": "N13", "shape": "dot", "size": 4, "title": "Usable: True\u003cbr/\u003eCost: 37", "x": 1300, "y": -1480}, {"color": "black", "id": 14, "label": "N14", "shape": "dot", "size": 4, "title": "Usable: True\u003cbr/\u003eCost: 33", "x": 1220, "y": -1000}, {"color": "black", "id": 15, "label": "N15", "shape": "dot", "size": 4, "title": "Usable: True\u003cbr/\u003eCost: 22", "x": 1880, "y": -760}, {"color": "black", "id": 16, "label": "N16", "shape": "dot", "size": 4, "title": "Usable: True\u003cbr/\u003eCost: 48", "x": 440, "y": -1260}, {"color": "black", "id": 17, "label": "N17", "shape": "dot", "size": 4, "title": "Usable: True\u003cbr/\u003eCost: 45", "x": 1880, "y": -420}, {"color": "black", "id": 18, "label": "N18", "shape": "dot", "size": 4, "title": "Usable: True\u003cbr/\u003eCost: 55", "x": 380, "y": -160}, {"color": "black", "id": 19, "label": "N19", "shape": "dot", "size": 4, "title": "Usable: True\u003cbr/\u003eCost: 10", "x": 1700, "y": -1800}, {"color": "red", "id": 20, "label": "N20", "shape": "dot", "size": 4, "title": "Usable: False\u003cbr/\u003eCost: 46", "x": 1960, "y": -1400}, {"color": "black", "id": 21, "label": "N21", "shape": "dot", "size": 4, "title": "Usable: True\u003cbr/\u003eCost: 44", "x": 1580, "y": -1840}, {"color": "black", "id": 22, "label": "N22", "shape": "dot", "size": 4, "title": "Usable: True\u003cbr/\u003eCost: 13", "x": 500, "y": -1360}, {"color": "black", "id": 23, "label": "N23", "shape": "dot", "size": 4, "title": "Usable: True\u003cbr/\u003eCost: 39", "x": 1160, "y": -1780}, {"color": "black", "id": 24, "label": "N24", "shape": "dot", "size": 4, "title": "Usable: True\u003cbr/\u003eCost: 21", "x": 1980, "y": -140}, {"color": "black", "id": 25, "label": "N25", "shape": "dot", "size": 4, "title": "Usable: True\u003cbr/\u003eCost: 13", "x": 1420, "y": -320}, {"color": "black", "id": 26, "label": "N26", "shape": "dot", "size": 4, "title": "Usable: True\u003cbr/\u003eCost: 53", "x": 1160, "y": -1820}, {"color": "black", "id": 27, "label": "N27", "shape": "dot", "size": 4, "title": "Usable: True\u003cbr/\u003eCost: 44", "x": 1840, "y": -1160}, {"color": "black", "id": 28, "label": "N28", "shape": "dot", "size": 4, "title": "Usable: True\u003cbr/\u003eCost: 37", "x": 1460, "y": -1580}, {"color": "black", "id": 29, "label": "N29", "shape": "dot", "size": 4, "title": "Usable: True\u003cbr/\u003eCost: 26", "x": 620, "y": -580}, {"color": "black", "id": 30, "label": "N30", "shape": "dot", "size": 4, "title": "Usable: True\u003cbr/\u003eCost: 20", "x": 780, "y": -540}, {"color": "black", "id": 31, "label": "N31", "shape": "dot", "size": 4, "title": "Usable: True\u003cbr/\u003eCost: 26", "x": 800, "y": -1240}, {"color": "black", "id": 32, "label": "N32", "shape": "dot", "size": 4, "title": "Usable: True\u003cbr/\u003eCost: 49", "x": 160, "y": -840}]);
+        edges = new vis.DataSet([{"color": "black", "from": 0, "label": 20.6, "to": 9}, {"color": "black", "from": 0, "label": 27.2, "to": 14}, {"color": "black", "from": 0, "label": 28.7, "to": 15}, {"color": "black", "from": 0, "label": 25.2, "to": 17}, {"color": "black", "from": 0, "label": 8.2, "to": 25}, {"color": "black", "from": 1, "label": 7.2, "to": 4}, {"color": "black", "from": 1, "label": 28.6, "to": 5}, {"color": "black", "from": 1, "label": 12.5, "to": 7}, {"color": "black", "from": 1, "label": 18.0, "to": 10}, {"color": "black", "from": 1, "label": 22.2, "to": 16}, {"color": "black", "from": 1, "label": 16.4, "to": 22}, {"color": "black", "from": 1, "label": 24.4, "to": 23}, {"color": "black", "from": 1, "label": 25.1, "to": 26}, {"color": "black", "from": 1, "label": 19.6, "to": 31}, {"color": "black", "from": 2, "label": 19.9, "to": 3}, {"color": "black", "from": 2, "label": 21.1, "to": 12}, {"color": "black", "from": 2, "label": 27.2, "to": 16}, {"color": "black", "from": 2, "label": 9.4, "to": 32}, {"color": "black", "from": 3, "label": 4.5, "to": 12}, {"color": "black", "from": 3, "label": 23.9, "to": 18}, {"color": "black", "from": 3, "label": 25.0, "to": 29}, {"color": "black", "from": 3, "label": 14.1, "to": 32}, {"color": "black", "from": 4, "label": 24.2, "to": 5}, {"color": "black", "from": 4, "label": 15.0, "to": 7}, {"color": "black", "from": 4, "label": 24.5, "to": 8}, {"color": "black", "from": 4, "label": 16.6, "to": 10}, {"color": "black", "from": 4, "label": 15.0, "to": 16}, {"color": "black", "from": 4, "label": 9.2, "to": 22}, {"color": "black", "from": 4, "label": 15.8, "to": 31}, {"color": "black", "from": 5, "label": 22.6, "to": 7}, {"color": "black", "from": 5, "label": 5.4, "to": 8}, {"color": "black", "from": 5, "label": 22.4, "to": 9}, {"color": "black", "from": 5, "label": 13.6, "to": 10}, {"color": "black", "from": 5, "label": 12.2, "to": 11}, {"color": "black", "from": 5, "label": 20.2, "to": 14}, {"color": "black", "from": 5, "label": 21.5, "to": 16}, {"color": "black", "from": 5, "label": 21.9, "to": 22}, {"color": "black", "from": 5, "label": 26.0, "to": 29}, {"color": "black", "from": 5, "label": 26.1, "to": 30}, {"color": "black", "from": 5, "label": 9.1, "to": 31}, {"color": "black", "from": 6, "label": 22.4, "to": 19}, {"color": "black", "from": 6, "label": 3.0, "to": 20}, {"color": "black", "from": 6, "label": 27.2, "to": 21}, {"color": "black", "from": 6, "label": 12.4, "to": 27}, {"color": "black", "from": 6, "label": 23.8, "to": 28}, {"color": "black", "from": 7, "label": 26.0, "to": 8}, {"color": "black", "from": 7, "label": 9.1, "to": 10}, {"color": "black", "from": 7, "label": 19.0, "to": 13}, {"color": "black", "from": 7, "label": 29.2, "to": 14}, {"color": "black", "from": 7, "label": 26.8, "to": 16}, {"color": "black", "from": 7, "label": 22.1, "to": 22}, {"color": "black", "from": 7, "label": 18.4, "to": 23}, {"color": "black", "from": 7, "label": 20.0, "to": 26}, {"color": "black", "from": 7, "label": 27.3, "to": 28}, {"color": "black", "from": 7, "label": 14.3, "to": 31}, {"color": "black", "from": 8, "label": 26.2, "to": 9}, {"color": "black", "from": 8, "label": 17.5, "to": 10}, {"color": "black", "from": 8, "label": 10.4, "to": 11}, {"color": "black", "from": 8, "label": 25.0, "to": 14}, {"color": "black", "from": 8, "label": 18.4, "to": 16}, {"color": "black", "from": 8, "label": 20.2, "to": 22}, {"color": "black", "from": 8, "label": 22.6, "to": 29}, {"color": "black", "from": 8, "label": 24.2, "to": 30}, {"color": "black", "from": 8, "label": 11.7, "to": 31}, {"color": "black", "from": 8, "label": 29.4, "to": 32}, {"color": "black", "from": 9, "label": 28.0, "to": 10}, {"color": "black", "from": 9, "label": 22.1, "to": 11}, {"color": "black", "from": 9, "label": 7.0, "to": 14}, {"color": "black", "from": 9, "label": 28.8, "to": 25}, {"color": "black", "from": 9, "label": 27.2, "to": 30}, {"color": "black", "from": 9, "label": 28.3, "to": 31}, {"color": "black", "from": 10, "label": 25.7, "to": 11}, {"color": "black", "from": 10, "label": 21.5, "to": 13}, {"color": "black", "from": 10, "label": 22.6, "to": 14}, {"color": "black", "from": 10, "label": 23.2, "to": 16}, {"color": "black", "from": 10, "label": 20.1, "to": 22}, {"color": "black", "from": 10, "label": 26.4, "to": 23}, {"color": "black", "from": 10, "label": 28.2, "to": 26}, {"color": "black", "from": 10, "label": 6.4, "to": 31}, {"color": "black", "from": 11, "label": 23.8, "to": 14}, {"color": "black", "from": 11, "label": 27.8, "to": 16}, {"color": "black", "from": 11, "label": 14.4, "to": 29}, {"color": "black", "from": 11, "label": 14.0, "to": 30}, {"color": "black", "from": 11, "label": 21.0, "to": 31}, {"color": "black", "from": 12, "label": 24.8, "to": 18}, {"color": "black", "from": 12, "label": 29.2, "to": 29}, {"color": "black", "from": 12, "label": 17.1, "to": 32}, {"color": "black", "from": 13, "label": 24.3, "to": 14}, {"color": "black", "from": 13, "label": 25.6, "to": 19}, {"color": "black", "from": 13, "label": 22.8, "to": 21}, {"color": "black", "from": 13, "label": 16.6, "to": 23}, {"color": "black", "from": 13, "label": 18.4, "to": 26}, {"color": "black", "from": 13, "label": 9.4, "to": 28}, {"color": "black", "from": 13, "label": 27.7, "to": 31}, {"color": "black", "from": 14, "label": 24.2, "to": 31}, {"color": "black", "from": 15, "label": 17.0, "to": 17}, {"color": "black", "from": 15, "label": 20.1, "to": 27}, {"color": "black", "from": 16, "label": 5.8, "to": 22}, {"color": "black", "from": 16, "label": 18.0, "to": 31}, {"color": "black", "from": 16, "label": 25.2, "to": 32}, {"color": "black", "from": 17, "label": 14.9, "to": 24}, {"color": "black", "from": 17, "label": 23.5, "to": 25}, {"color": "black", "from": 18, "label": 24.2, "to": 29}, {"color": "black", "from": 18, "label": 27.6, "to": 30}, {"color": "black", "from": 19, "label": 23.9, "to": 20}, {"color": "black", "from": 19, "label": 6.3, "to": 21}, {"color": "black", "from": 19, "label": 27.0, "to": 23}, {"color": "black", "from": 19, "label": 27.0, "to": 26}, {"color": "black", "from": 19, "label": 16.3, "to": 28}, {"color": "black", "from": 20, "label": 29.1, "to": 21}, {"color": "black", "from": 20, "label": 13.4, "to": 27}, {"color": "black", "from": 20, "label": 26.6, "to": 28}, {"color": "black", "from": 21, "label": 21.2, "to": 23}, {"color": "black", "from": 21, "label": 21.0, "to": 26}, {"color": "black", "from": 21, "label": 14.3, "to": 28}, {"color": "black", "from": 22, "label": 16.2, "to": 31}, {"color": "black", "from": 23, "label": 2.0, "to": 26}, {"color": "black", "from": 23, "label": 18.0, "to": 28}, {"color": "black", "from": 24, "label": 29.4, "to": 25}, {"color": "black", "from": 26, "label": 19.2, "to": 28}, {"color": "black", "from": 27, "label": 28.3, "to": 28}, {"color": "black", "from": 29, "label": 8.2, "to": 30}, {"color": "black", "from": 29, "label": 26.4, "to": 32}]);
+
+        // adding nodes and edges to the graph
+        data = {nodes: nodes, edges: edges};
+
+        var options = {
+    "configure": {
+        "enabled": false
+    },
+    "edges": {
+        "color": {
+            "inherit": false
+        },
+        "smooth": {
+            "enabled": false,
+            "type": "continuous"
+        }
+    },
+    "interaction": {
+        "dragNodes": false,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": false,
+        "stabilization": {
+            "enabled": false,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+        
+        
+
+        
+
+        network = new vis.Network(container, data, options);
+	 
+        
+
+
+        
+
+        return network;
+
+    }
+
+    drawGraph();
+
+</script>
+</body>
+</html>

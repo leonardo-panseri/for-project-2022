@@ -2,4 +2,4 @@ venv
 .idea
 
 *.json
-*.html
+src/*.html
