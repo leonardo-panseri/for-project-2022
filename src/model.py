@@ -7,6 +7,10 @@ import json
 from data.p2.minimart_data import Cx, Cy, usable, Dc, r
 
 
+# #################
+# Utility functions
+# #################
+
 def distance(x1, y1, x2, y2):
     """
     Calculates the distance between two points
@@ -39,6 +43,10 @@ def build_distance_matrix(n):
     """
     return [[distance(Cx[i], Cy[i], Cx[j], Cy[j]) for j in range(n)] for i in range(n)]
 
+
+# ###################################
+# Model construction and optimization
+# ###################################
 
 def build_model_and_optimize(n, dist):
     """
@@ -137,6 +145,10 @@ def print_optimal_solution(save=False):
         f.write(json.dumps(result))
         f.close()
 
+
+# ##############################
+# Input and output visualization
+# ##############################
 
 def build_base_graph(n, radius):
     """
@@ -276,6 +288,10 @@ def visualize_input(scale=20, show_all_edges=False):
 
     net.show("input_visualization.html")
 
+
+# ###########
+# Entry point
+# ###########
 
 if __name__ == '__main__':
     # If module is executed as a script check command line arguments
