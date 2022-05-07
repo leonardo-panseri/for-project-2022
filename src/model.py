@@ -236,8 +236,7 @@ def visualize_solution(scale=20, show_all_edges=False):
                         # black if not selected but in range, red if not in range
                         color = "green" if y[i][j] == 1 else "black" if dist[i][j] <= rn else "red"
                         net.add_edge(i, j, label=round(dist[i][j], 1), color=color)
-                    elif dist[i][j] > rn and y[i][
-                        j] == 1:  # Check if all selected edges have distance less or equal than max radius
+                    elif dist[i][j] > rn and y[i][j] == 1:  # Check if all selected edges have distance less or equal than max radius
                         print(f"ERROR: arc ({i},{j}) is selected but their distance is greater than max radius")
                 elif x[j] == 0 and y[i][j] == 1:  # Check if all selected edges go to nodes that are selected
                     print(f"ERROR: arc ({i},{j}) is selected but N{j} is not selected")
