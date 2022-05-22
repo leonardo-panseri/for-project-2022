@@ -1,10 +1,14 @@
+# Authors:
+# Viola Renne
+# Leonardo Panseri
+
 import math
 import mip
 import json
 
 # Import data, change the name of the file to change dataset
 # from minimart_data import Cx, Cy, usable, Dc, r
-from data.p2.minimart_data import Cx, Cy, usable, Dc, r
+from data.robomarkt_0 import Cx, Cy, usable, Dc, maxdist, mindist
 
 
 # #################
@@ -84,11 +88,11 @@ def build_model_and_optimize(n, dist):
             for t in range(n):
                 m.add_constr(y[i][j] * dist[i][j] <= dist[i][t] + z * (1 - x[t]))
 
-    # Ensures that the closest market to house i is at a distance smaller than r
+    # Ensures that the closest market to house i is at a distance smaller than maxdist
     for i in range(n):
         for j in range(n):
             if dist[i][j] != 0:
-                m.add_constr(y[i][j] * dist[i][j] <= r)
+                m.add_constr(y[i][j] * dist[i][j] <= maxdist)
 
     # Ensures that y_ij can be 1 only if a market is placed on land of house j
     for i in range(n):
@@ -98,6 +102,12 @@ def build_model_and_optimize(n, dist):
     # Ensures that every house i is served by at least one market j
     for i in range(n):
         m.add_constr(mip.xsum(y[i][j] for j in range(n)) == 1 - 1 * x[i])
+
+    # Ensures that the distance between every two markets is grater than mindist
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                m.add_constr(distance(Cx[i], Cx[j], Cy[i], Cy[j]) >= mindist - z * (2 - x[i] - x[j]))
 
     # ##################
     # Objective function
@@ -133,11 +143,18 @@ def print_optimal_solution(save=False):
 
     print(f"RESULT: {obj_value} {num_of_markets}")
 
+    installed_markets = ""
+    for i in range(n):
+        if x[i].x == 1:
+            installed_markets += f"{i} "
+    installed_markets = installed_markets.strip()
+    print(installed_markets)
+
     if save:
         coords = {i: (Cx[i], Cy[i]) for i in range(n)}
         x_values = [x[i].x for i in range(n)]
         y_values = [[y[i][j].x for j in range(n)] for i in range(n)]
-        result = {"n": n, "r": r, "coords": coords, "usable": usable, "cost": Dc, "dist": dist, "obj_value": obj_value,
+        result = {"n": n, "maxdist": maxdist, "mindist": mindist, "coords": coords, "usable": usable, "cost": Dc, "dist": dist, "obj_value": obj_value,
                   "x": x_values, "y": y_values,
                   "built": num_of_markets}
 
@@ -182,7 +199,7 @@ def build_base_graph(n, radius):
               "<br/><span style='color: black'>&horbar;</span> : not selected but in range"
               "<br/><span style='color: red'>&horbar;</span> : not in range"]
 
-    step = 50
+    step = 150
     x = -300
     y = -110
     legend_nodes = [
@@ -194,7 +211,7 @@ def build_base_graph(n, radius):
                 'x': x,
                 'y': f'{y + i * step}px',
                 'shape': 'box',
-                'widthConstraint': 50,
+                'widthConstraint': 150,
                 'font': {'size': 30},
                 'title': titles[i]
             }
@@ -218,7 +235,7 @@ def visualize_solution(scale=20, show_all_edges=False):
     data = json.loads(f.read())
 
     n = data["n"]
-    rn = data["r"]
+    rn = data["maxdist"]
     coords = {int(k): v for k, v in data["coords"].items()}
     usbl = data["usable"]
     cost = data["cost"]
@@ -247,7 +264,7 @@ def visualize_solution(scale=20, show_all_edges=False):
                         # Add all edges to the graph with colour: green if selected om the optimal solution,
                         # black if not selected but in range, red if not in range
                         color = "green" if y[i][j] == 1 else "black" if dist[i][j] <= rn else "red"
-                        net.add_edge(i, j, label=round(dist[i][j], 1), color=color)
+                        net.add_edge(i, j, label=str(round(dist[i][j], 1)), color=color)
                     elif dist[i][j] > rn and y[i][j] == 1:  # Check if all selected edges have distance less or equal than max radius
                         print(f"ERROR: arc ({i},{j}) is selected but their distance is greater than max radius")
                 elif x[j] == 0 and y[i][j] == 1:  # Check if all selected edges go to nodes that are selected
@@ -268,7 +285,7 @@ def visualize_input(scale=20, show_all_edges=False):
     n = get_input_length()
     dist = build_distance_matrix(n)
 
-    net = build_base_graph(n, r)
+    net = build_base_graph(n, maxdist)
 
     for i in range(n):
         # Add all n nodes to the graph with colour: black if usable, red if not
@@ -279,7 +296,7 @@ def visualize_input(scale=20, show_all_edges=False):
     for i in range(n):
         for j in range(n):
             if i != j:  # Do not show self-loops
-                if dist[i][j] <= r:  # If node i is in range of node j
+                if dist[i][j] <= maxdist:  # If node i is in range of node j
                     # Add all edges that connect nodes in range of each other colored black
                     net.add_edge(i, j, color="black", label=round(dist[i][j], 1))
                 elif show_all_edges:
