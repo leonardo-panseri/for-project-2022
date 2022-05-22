@@ -77,6 +77,9 @@ def build_model_and_optimize(n, dist):
     # Constraints
     # ###########
 
+    # Ensures that the main location of the company is always selected
+    m.add_constr(x[0] == 1)
+
     # Ensures that a market can be placed only on land of homeowners that have given their permission
     for i in range(n):
         m.add_constr(x[i] <= usable[i])
