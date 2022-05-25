@@ -5,15 +5,20 @@
 import math
 import mip
 import json
+from itertools import chain, combinations
 
 # Import data, change the name of the file to change dataset
 # from minimart_data import Cx, Cy, usable, Dc, r
-from data.robomarkt_0 import Cx, Cy, usable, Dc, maxdist, mindist
+from data.robomarkt_0 import Cx, Cy, usable, Dc, maxdist, mindist, maxstores, Fc, Vc
 
 
 # #################
 # Utility functions
 # #################
+
+def power_set(iterable):
+    s = list(iterable)
+    return chain.from_iterable(combinations(s, r) for r in range(len(s)+1))
 
 def distance(x1, y1, x2, y2):
     """
@@ -52,7 +57,7 @@ def build_distance_matrix(n):
 # Model construction and optimization
 # ###################################
 
-def build_model_and_optimize(n, dist):
+def build_location_model_and_optimize(n, dist):
     """
     Constructs the linear model for the mini market construction problem and finds the optimal solution
     :param n: the size of the input
@@ -125,6 +130,77 @@ def build_model_and_optimize(n, dist):
     return m.objective_value, x, y, status
 
 
+def build_path_model_and_optimize(n, s, dist):
+    # Initialize model and disable verbose logging
+    m = mip.Model()
+    m.verbose = 0
+
+    # #########
+    # Variables
+    # #########
+
+    # u_h: 1 if truck h is used, 0 otherwise
+    u = [m.add_var(var_type=mip.BINARY) for h in range(s)]
+
+    # a_ijh: 1 if truck h path contains edge (i,j), 0 otherwise
+    a = [[[m.add_var(var_type=mip.BINARY) for h in range(s)] for j in range(s)] for i in range(s)]
+
+    # ###########
+    # Constraints
+    # ###########
+    for i in range(s):
+        for h in range(s):
+            m.add_constr(a[i][i][h] == 0)
+
+    for h in range(s - 1):
+        m.add_constr(u[h] >= u[h + 1])
+
+    for h in range(s):
+        m.add_constr(mip.xsum(a[0][j][h] for j in range(s)) == u[h])
+
+    for h in range(s):
+        m.add_constr(mip.xsum(a[j][0][h] for j in range(s)) == u[h])
+
+    for h in range(s):
+        for i in range(s):
+            for j in range(s):
+                m.add_constr(a[i][j][h] <= u[h])
+
+    for h in range(s):
+        for i in range(s):
+            m.add_constr(mip.xsum(a[i][j][h] for j in range(s)) == mip.xsum(a[k][i][h] for k in range(s)))
+
+    for i in range(1, s):
+        m.add_constr(mip.xsum(mip.xsum(a[i][j][h] for h in range(s)) for j in range(s)) == 1)
+
+    for j in range(1, s):
+        m.add_constr(mip.xsum(mip.xsum(a[i][j][h] for h in range(s)) for i in range(s)) == 1)
+
+    for h in range(s):
+        m.add_constr(mip.xsum(mip.xsum(a[i][j][h] for j in range(s)) for i in range(s)) <= maxstores + 1)
+
+    all_subsets = power_set(range(s))
+    all_subsets = [el for el in all_subsets if len(el) > 1]
+    for h in range(s):
+        for subset in all_subsets:
+            m.add_constr(mip.xsum(mip.xsum(a[i][j][h] for j in subset) for i in subset) <= len(subset) - 1)
+
+    # ##################
+    # Objective function
+    # ##################
+
+    # Minimizes the cost of the paths
+    m.objective = mip.minimize(
+        mip.xsum(Fc * u[h] +
+                 mip.xsum(mip.xsum(Vc * dist[i][j] * a[i][j][h] for j in range(s)) for i in range(s))
+                 for h in range(s)))
+
+    # Perform optimization of the model
+    status = m.optimize()
+
+    return m.objective_value, u, a, status
+
+
 def print_optimal_solution(save=False):
     """
     Prints the optimal solution
@@ -133,7 +209,7 @@ def print_optimal_solution(save=False):
     n = get_input_length()
     dist = build_distance_matrix(n)
 
-    obj_value, x, y, status = build_model_and_optimize(n, dist)
+    obj_value, x, y, status = build_location_model_and_optimize(n, dist)
 
     if status != mip.OptimizationStatus.OPTIMAL:
         print(f"Problem has no optimal solution: {status}")
@@ -146,12 +222,30 @@ def print_optimal_solution(save=False):
 
     print(f"RESULT: {obj_value} {num_of_markets}")
 
-    installed_markets = ""
+    installed_markets = []
     for i in range(n):
         if x[i].x == 1:
-            installed_markets += f"{i} "
-    installed_markets = installed_markets.strip()
-    print(installed_markets)
+            installed_markets.append(i)
+    print(" ".join([str(el) for el in installed_markets]))
+
+    s = len(installed_markets)
+
+    installed_dist = [[distance(Cx[installed_markets[i]], Cy[installed_markets[i]], Cx[installed_markets[j]], Cy[installed_markets[j]]) for j in range(s)] for i in range(s)]
+
+    obj_value, u, a, status = build_path_model_and_optimize(n, s, installed_dist)
+
+    if status != mip.OptimizationStatus.OPTIMAL:
+        print(f"Problem has no optimal solution: {status}")
+        exit()
+
+    for h in range(s):
+        if u[h].x == 1:
+            edges = []
+            for i in range(s):
+                for j in range(s):
+                    if a[i][j][h].x == 1:
+                        edges.append((installed_markets[i], installed_markets[j]))
+            print(f"Path {h}: {edges}")
 
     if save:
         coords = {i: (Cx[i], Cy[i]) for i in range(n)}
