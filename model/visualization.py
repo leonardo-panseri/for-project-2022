@@ -70,7 +70,7 @@ def visualize_solution(scale=20, show_all_edges=False):
     data = json.loads(f.read())
 
     n = data["n"]
-    rn = data["max_distance_from_market"]
+    rn = data["maxdist"]
     coords = {int(k): v for k, v in data["coords"].items()}
     usbl = data["usable"]
     cost = data["cost"]

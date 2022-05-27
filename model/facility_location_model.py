@@ -20,8 +20,6 @@ def build_location_model_and_optimize(locations_num, dist, usable, direct_build_
     """
     # Initialize the set of all locations
     n = range(locations_num)
-    # Initialize large constant to use in constraints
-    z = 1e12
     
     # Initialize model and disable verbose logging
     m = mip.Model()
@@ -42,38 +40,43 @@ def build_location_model_and_optimize(locations_num, dist, usable, direct_build_
     # ###########
 
     # Ensures that the main location of the company is always selected
-    m.add_constr(x[0] * 1 == 1)
+    m.add_constr(x[0] == 1)
 
     # Ensures that a market can be placed only on land of homeowners that have given their permission
     for i in n:
-        m.add_constr(x[i] * 1 <= usable[i])
+        if not usable[i]:
+            m.add_constr(x[i] == 0)
 
     # Ensures that y_ij can be 1 only if j is the market closest to house i
     for i in n:
         for j in n:
             for t in n:
-                m.add_constr(y[i, j] * dist[i, j] <= dist[i, t] + z * (1 - x[t]))
+                if i != j:
+                    m.add_constr(y[i, j] * dist[i, j] <= dist[i, t] + dist[i, j] * (1 - x[t]))
+
+    for i in n:
+        m.add_constr(y[i, i] == 1 * x[i])
 
     # Ensures that the closest market to house i is at a distance smaller than a threshold
     for i in n:
         for j in n:
-            if dist[i, j] != 0:  # Check if distance is not 0 to avoid problems in mip linear expression
-                m.add_constr(y[i, j] * dist[i, j] * 1 <= max_dist_from_market)
+            if i != j:
+                m.add_constr(y[i, j] * dist[i, j] <= max_dist_from_market)
 
     # Ensures that y_ij can be 1 only if a market is placed on land of house j
     for i in n:
         for j in n:
-            m.add_constr(y[i, j] * 1 <= x[j])
+            m.add_constr(y[i, j] <= x[j])
 
     # Ensures that every house i is served by at least one market j
     for i in n:
-        m.add_constr(mip.xsum(y[i, j] for j in n) == 1 - 1 * x[i])
+        m.add_constr(mip.xsum(y[i, j] for j in n) == 1 - x[i])
 
     # Ensures that the distance between every two markets is greater than a threshold
     for i in n:
         for j in n:
             if i != j:
-                m.add_constr(dist[i, j] >= min_dist_between_markets - z * (2 - x[i] - x[j]))
+                m.add_constr(dist[i, j] >= min_dist_between_markets - min_dist_between_markets * (2 - x[i] - x[j]))
 
     # ##################
     # Objective function
@@ -111,6 +114,8 @@ def find_optimal_locations(n, dist, x_coords, y_coords, usable, direct_build_cos
         print(f"Problem has no optimal solution: {status}")
         exit()
 
+    print(obj_value)
+
     installed_markets = []
     for i in range(n):
         if x[i].x == 1:
@@ -141,9 +146,10 @@ def find_optimal_locations(n, dist, x_coords, y_coords, usable, direct_build_cos
     if save:
         coords = {i: (x_coords[i], y_coords[i]) for i in range(n)}
         x_values = [x[i].x for i in range(n)]
-        y_values = [[y[i][j].x for j in range(n)] for i in range(n)]
+        y_values = [[y[i, j].x for j in range(n)] for i in range(n)]
+        dist_values = [[dist[i, j] for j in range(n)] for i in range(n)]
         result = {"n": n, "maxdist": max_dist_from_market, "mindist": min_dist_between_markets,
-                  "coords": coords, "usable": usable, "cost": direct_build_costs, "dist": dist, "obj_value": obj_value,
+                  "coords": coords, "usable": usable, "cost": direct_build_costs, "dist": dist_values, "obj_value": obj_value,
                   "x": x_values, "y": y_values}
 
         f = open("result.json", "w")
