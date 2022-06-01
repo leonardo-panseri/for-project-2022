@@ -70,6 +70,7 @@ def visualize_solution(scale=20, show_all_edges=False):
     data = json.loads(f.read())
 
     n = data["n"]
+    market_locations = data["market_locations"]
     rn = data["maxdist"]
     coords = {int(k): v for k, v in data["coords"].items()}
     usbl = data["usable"]
@@ -80,32 +81,34 @@ def visualize_solution(scale=20, show_all_edges=False):
 
     net = build_base_graph(n, rn)
 
-    for i in range(n):
+    for i in range(len(x)):
         # Check if all selected nodes are usable
-        if x[i] == 1 and not usbl[i]:
-            print(f"ERROR: node N{i} is selected in the optimal solution, but not usable")
+        # if y[i] == 1 and not usbl[i]:
+        #     print(f"ERROR: node N{i} is selected in the optimal solution, but not usable")
+        y_val = 0
+        if i in market_locations:
+            y_val = y[market_locations.index(i)]
 
         # Add all n nodes to the graph with the colour: green if selected in the optimal solution,
         # black if not selected but usable, red if not usable
-        color = "green" if x[i] == 1 else "red" if not usbl[i] else "black"
-        net.add_node(i, x=coords[i][0] * scale, y=-coords[i][1] * scale, size=4, label=f"N{i}", color=color,
+        color = "green" if y_val == 1 else "red" if not usbl[i] else "black"
+        net.add_node(i, x=coords[i][0] * scale, y=-coords[i][1] * scale, size=4,
+                     label=f"N{i}", color=color,
                      title=f"Usable: {usbl[i]}<br/>Cost: {cost[i]}")
 
-    for i in range(n):
-        for j in range(n):
-            if i != j:  # Do not show self-loops
-                if show_all_edges or x[j] == 1:  # Show only edges to nodes that have been selected
-                    if show_all_edges or dist[i][j] <= rn:  # Show only edges in range
-                        # Add all edges to the graph with colour: green if selected om the optimal solution,
-                        # black if not selected but in range, red if not in range
-                        color = "green" if y[i][j] == 1 else "black" if dist[i][j] <= rn else "red"
-                        net.add_edge(i, j, label=str(round(dist[i][j], 1)), color=color)
-                    elif dist[i][j] > rn and y[i][j] == 1:  # Check if for all selected edges: distance <= max radius
-                        print(f"ERROR: arc ({i},{j}) is selected but their distance is greater than max radius")
-                elif x[j] == 0 and y[i][j] == 1:  # Check if all selected edges go to nodes that are selected
-                    print(f"ERROR: arc ({i},{j}) is selected but N{j} is not selected")
-            elif y[i][j] == 1:  # Check if all self-loops are not selected
-                print(f"ERROR: arc ({i},{j}) is selected but it is a self loop")
+    for i in range(len(x)):
+        for j in range(len(y)):
+            location_index = market_locations[j]
+            if show_all_edges or y[j] == 1:  # Show only edges to nodes that have been selected
+                if show_all_edges or dist[i][location_index] <= rn:  # Show only edges in range
+                    # Add all edges to the graph with colour: green if selected om the optimal solution,
+                    # black if not selected but in range, red if not in range
+                    color = "green" if x[i][j] == 1 else "black" if dist[i][location_index] <= rn else "red"
+                    net.add_edge(i, location_index, label=str(round(dist[i][location_index], 1)), color=color)
+                elif dist[i][location_index] > rn and x[i][j] == 1:  # Check if for all selected edges: distance <= max radius
+                    print(f"ERROR: arc ({i},{j}) is selected but their distance is greater than max radius")
+            elif x[j] == 0 and x[i][j] == 1:  # Check if all selected edges go to nodes that are selected
+                print(f"ERROR: arc ({i},{j}) is selected but N{j} is not selected")
 
     net.show("result_visualization.html")
 
@@ -126,6 +129,8 @@ def visualize_input(n, dist, x_coords, y_coords, usable, direct_build_costs, max
     """
     net = build_base_graph(n, max_dist_from_market)
 
+    market_locations = [i for i in range(n) if usable[i]]
+
     for i in range(n):
         # Add all n nodes to the graph with colour: black if usable, red if not
         color = "black" if usable[i] else "red"
@@ -133,13 +138,13 @@ def visualize_input(n, dist, x_coords, y_coords, usable, direct_build_costs, max
                      title=f"Usable: {usable[i]}<br/>Cost: {direct_build_costs[i]}")
 
     for i in range(n):
-        for j in range(n):
+        for j in market_locations:
             if i != j:  # Do not show self-loops
-                if dist[i][j] <= max_dist_from_market:  # If node i is in range of node j
+                if dist[i, j] <= max_dist_from_market:  # If node i is in range of node j
                     # Add all edges that connect nodes in range of each other colored black
-                    net.add_edge(i, j, color="black", label=round(dist[i][j], 1))
+                    net.add_edge(i, j, color="black", label=round(dist[i, j], 1))
                 elif show_all_edges:
                     # Add all edges that connect nodes not in range of each other colored red
-                    net.add_edge(i, j, color="red", label=round(dist[i][j], 1))
+                    net.add_edge(i, j, color="red", label=round(dist[i, j], 1))
 
     net.show("input_visualization.html")

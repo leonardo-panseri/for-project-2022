@@ -43,6 +43,9 @@ def build_distance_matrix(n, x_coords, y_coords):
         for j in range(n):
             new_dist = distance(x_coords[i], y_coords[i], x_coords[j], y_coords[j])
 
+            if new_dist == 0 and i != j:
+                print(f"WARNING: dist[{i}, {j}] is 0")
+
             dist[i, j] = new_dist
 
             if new_dist > max_dist:
