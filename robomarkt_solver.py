@@ -25,7 +25,7 @@ def solve(save=False, visualize=False):
     markets_y_coords = [y_coords[i] for i in range(locations_num) if i in installed_markets]
     markets_dist = build_distance_matrix(len(installed_markets), markets_x_coords, markets_y_coords)
     paths = find_vehicle_paths(installed_markets, markets_dist, markets_x_coords, markets_y_coords,
-                               truck_fixed_fee, truck_fee_per_km)
+                               max_stores_per_route, truck_fixed_fee, truck_fee_per_km)
     print(paths)
 
     if visualize:
