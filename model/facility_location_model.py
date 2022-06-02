@@ -73,6 +73,8 @@ def build_location_model_and_optimize(all_locations, market_locations, dist, dir
     # Perform optimization of the model
     status = m.optimize()
 
+    print(m.objective_value)
+
     return m.objective_value, x, y, status
 
 
