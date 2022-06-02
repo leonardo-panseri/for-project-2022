@@ -15,10 +15,33 @@ def cluster_first_route_second(markets_num, dist, x_coords, y_coords, max_stores
     temp = [y_coords[i] - y_0 for i in range(markets_num)]
     y_coords = temp
 
-    #
+    # Calculate the angle of each market respective of the x axis
     angles = []
     for i in range(1, markets_num):
-        angle_rad = math.atan2(y_coords[i])
+        angle_rad = math.atan2(y_coords[i], x_coords[i])
+        if angle_rad < 0:
+            angle_rad += 2 * math.pi
+        angles.append({
+            "index": i,
+            "angle": angle_rad
+        })
+
+    # Sort the list in ascending order
+    angles.sort(key=lambda x: x["angle"], reverse=True)
+
+    clusters = [[]]
+    i = len(angles) - 1
+    curr_cluster = 0
+    while len(angles) > 0:
+        if len(clusters[curr_cluster]) == max_stores_per_route:
+            curr_cluster += 1
+            clusters.append([])
+
+        clusters[curr_cluster].append(angles[i]["index"])
+
+        del angles[i]
+        i -= 1
+    print(clusters)
 
     return "ERR"
 
