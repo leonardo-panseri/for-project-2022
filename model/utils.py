@@ -52,3 +52,24 @@ def build_distance_matrix(n, x_coords, y_coords):
                 max_dist = new_dist
 
     return dist, max_dist
+
+
+def pretty_print_path(edges):
+    edges = edges.copy()
+
+    nodes = []
+    next_node = 0
+    while len(edges) > 0:
+        found = False
+        for edge in edges:
+            if edge[0] == next_node:
+                nodes.append(edge[0])
+                next_node = edge[1]
+                edges.remove(edge)
+                found = True
+                continue
+        if not found:
+            return f"ERROR: Node {next_node} not found"
+    nodes.append(0)
+
+    return " ".join([str(el) for el in nodes])

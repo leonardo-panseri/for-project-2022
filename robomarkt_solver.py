@@ -1,7 +1,7 @@
 # Authors:
 # Viola Renne
 # Leonardo Panseri
-from model.utils import get_input_length, build_distance_matrix
+from model.utils import get_input_length, build_distance_matrix, pretty_print_path
 from model.facility_location_model import find_optimal_locations
 from model.vehicle_routing_model import find_vehicle_paths
 from model.visualization import visualize_input, visualize_solution
@@ -26,7 +26,9 @@ def solve(save=False, visualize=False):
     markets_dist, max_dist_between_markets = build_distance_matrix(len(installed_markets), markets_x_coords, markets_y_coords)
     paths = find_vehicle_paths(installed_markets, markets_dist, markets_x_coords, markets_y_coords,
                                max_stores_per_route, truck_fixed_fee, truck_fee_per_km)
-    # print(paths)
+
+    for i in range(len(paths)):
+        print(f"Path {i + 1}: {pretty_print_path(paths[i])}")
 
     if visualize:
         visualize_solution()

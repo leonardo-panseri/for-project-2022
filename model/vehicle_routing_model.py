@@ -1,13 +1,9 @@
 import mip
 import math
+from model.utils import build_distance_matrix
 
 
-def sweep():
-    pass
-
-
-def cluster_first_route_second(markets_num, dist, x_coords, y_coords, max_stores_per_route, truck_fixed_fee,
-                               truck_fee_per_km):
+def sweep(markets_num, x_coords, y_coords, max_stores_per_route):
     # Translate all coordinates to have cartesian origin in the first location (depot)
     x_0 = x_coords[0]
     y_0 = y_coords[0]
@@ -27,9 +23,10 @@ def cluster_first_route_second(markets_num, dist, x_coords, y_coords, max_stores
             "angle": angle_rad
         })
 
-    # Sort the list in ascending order
+    # Sort the list in descending order
     angles.sort(key=lambda x: x["angle"], reverse=True)
 
+    # Build the list of clusters, each of them can contain up to 'max_stores_per_route' elements
     clusters = [[]]
     i = len(angles) - 1
     curr_cluster = 0
@@ -42,9 +39,81 @@ def cluster_first_route_second(markets_num, dist, x_coords, y_coords, max_stores
 
         del angles[i]
         i -= 1
-    print(clusters)
 
-    return "ERR"
+    return clusters
+
+
+def build_tsp_model_and_optimize(markets_num, dist):
+    m = mip.Model()
+    m.verbose = 0
+
+    markets = range(markets_num)
+
+    x = {(i, j): m.add_var(var_type=mip.BINARY) for i in markets for j in markets}
+
+    for i in markets:
+        m.add_constr(x[i, i] == 0)
+
+    for i in markets:
+        m.add_constr(mip.xsum(x[i, j] for j in markets) == 1)
+        m.add_constr(mip.xsum(x[j, i] for j in markets) == 1)
+
+    m.objective = mip.minimize(mip.xsum(x[i, j] * dist[i, j] for i in markets for j in markets))
+
+    status = m.optimize()
+
+    if status != mip.OptimizationStatus.OPTIMAL:
+        print(f"Problem has no optimal solution: {status}")
+        exit()
+
+    path = []
+    for i in markets:
+        for j in markets:
+            if x[i, j].x == 1:
+                path.append((i, j))
+
+    subtour = find_shortest_subtour([path])
+    while subtour is not None:
+        m.add_constr(mip.xsum(x[i, j] for (i, j) in subtour) <= len(subtour) - 1)
+
+        status = m.optimize()
+        if status != mip.OptimizationStatus.OPTIMAL:
+            print(f"Problem has no optimal solution: {status}")
+            exit()
+
+        path = []
+        for i in markets:
+            for j in markets:
+                if x[i, j].x == 1:
+                    path.append((i, j))
+
+        subtour = find_shortest_subtour([path])
+
+    return path
+
+
+def cluster_first_route_second(markets_num, dist, x_coords, y_coords, max_stores_per_route, truck_fixed_fee,
+                               truck_fee_per_km):
+    clustering_method = sweep
+
+    clusters = clustering_method(markets_num, x_coords, y_coords, max_stores_per_route)
+
+    paths = []
+    for cluster in clusters:
+        cluster.append(0)
+        cluster.sort()
+
+        n = len(cluster)
+        cluster_x_coords = [x_coords[i] for i in range(markets_num) if i in cluster]
+        cluster_y_coords = [y_coords[i] for i in range(markets_num) if i in cluster]
+
+        cluster_dist, _ = build_distance_matrix(n, cluster_x_coords, cluster_y_coords)
+        path = build_tsp_model_and_optimize(n, cluster_dist)
+
+        effective_path = [(cluster[i], cluster[j]) for (i, j) in path]
+        paths.append(effective_path)
+
+    return paths
 
 
 def linear_relaxation(markets_num, dist, x_coords, y_coords, max_stores_per_route, truck_fixed_fee, truck_fee_per_km):
@@ -152,13 +221,18 @@ def linear_relaxation(markets_num, dist, x_coords, y_coords, max_stores_per_rout
         subtour = find_shortest_subtour(paths)
         print(subtour)
 
-    return
+    return ""
 
 
 def find_shortest_subtour(paths):
     min_subtour = None
 
     for path in paths:
+        if len(path) <= 2:
+            return None
+
+        path = path.copy()
+
         start = None
         next = None
         subtours = [[]]
@@ -183,18 +257,22 @@ def find_shortest_subtour(paths):
                         start = None
                         next = None
 
-        for subtour in subtours:
-            if min_subtour is None:
-                min_subtour = subtour
-            elif len(subtour) < len(min_subtour):
-                min_subtour = subtour
+        if len(subtours[current_subtour]) == 0:
+            del subtours[current_subtour]
+
+        if len(subtours) > 1:
+            for subtour in subtours:
+                if min_subtour is None:
+                    min_subtour = subtour
+                elif 0 < len(subtour) < len(min_subtour):
+                    min_subtour = subtour
 
     return min_subtour
 
 
 def find_vehicle_paths(installed_markets, dist, x_coords, y_coords, max_stores_per_route, truck_fixed_fee,
                        truck_fee_per_km):
-    model = linear_relaxation
+    model = cluster_first_route_second
 
     n = len(installed_markets)
     result = model(n, dist, x_coords, y_coords, max_stores_per_route, truck_fixed_fee, truck_fee_per_km)
