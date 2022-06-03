@@ -2,12 +2,18 @@ import mip
 import json
 
 
-# ###################################
-# Model construction and optimization
-# ###################################
-
 def build_location_model_and_optimize(all_locations, market_locations, dist, direct_build_costs,
                                       max_dist_from_market, min_dist_between_markets):
+    """
+        Constructs the linear model for the mini market construction problem and finds the optimal solution
+        :param all_locations: the list of all locations
+        :param market_locations: the list of possible market locations
+        :param dist: a matrix containing distances between all locations
+        :param direct_build_costs: the array containing costs to build a market in a location
+        :param max_dist_from_market: the maximum distance at which a location can be served by a market
+        :param min_dist_between_markets: the minimum distance of two markets
+        :return: the objective value and optimal values for all variables and optimization status
+        """
     # Initialize model and disable verbose logging
     m = mip.Model()
     m.verbose = 0
@@ -40,16 +46,6 @@ def build_location_model_and_optimize(all_locations, market_locations, dist, dir
 
     # Ensures that market 0 is opened, as it is the main branch of the company
     m.add_constr(y[0] == 1)
-
-    # Ensures that every location is assigned to the closest open market
-    # for i in all_locations:
-    #     for h in market_locations:
-    #         m.add_constr(mip.xsum(x[i, j] for j in market_locations if dist[i, h] > dist[i, j]) <= 1 - y[h])
-    # for i in all_locations:
-    #     for j in market_locations:
-    #         for h in market_locations:
-    #             if dist[i, j] != 0 and i != h:
-    #                 m.add_constr(dist[i, j] * x[i, j] <= dist[i, h] + dist[i, j] * (1 - y[h]))
 
     # Ensures that a location can be assigned to an open market only if the market is closer than a threshold
     for i in all_locations:
@@ -95,6 +91,7 @@ def find_optimal_locations(n, dist, x_coords, y_coords, usable, direct_build_cos
     :param max_dist_from_market: the maximum distance at which a location can be served by a market
     :param min_dist_between_markets: the minimum distance of two markets
     :param save: if True writes the results to a json file
+    :return a list of locations where to install markets and the cost of doing so
     """
     all_locations = range(n)
     market_locations = [i for i in all_locations if usable[i]]
@@ -113,6 +110,7 @@ def find_optimal_locations(n, dist, x_coords, y_coords, usable, direct_build_cos
             installed_markets.append(i)
 
     if save:
+        # Save input of model and optimal solution to a JSON file
         coords = {i: (x_coords[i], y_coords[i]) for i in range(n)}
         y_values = [y[i].x for i in market_locations]
         x_values = [[x[i, j].x for j in market_locations] for i in all_locations]

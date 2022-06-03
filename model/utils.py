@@ -55,10 +55,16 @@ def build_distance_matrix(n, x_coords, y_coords):
 
 
 def pretty_print_path(edges):
+    """
+    Get a space-separated list of nodes that represent a path
+    :param edges: a list of tuples representing the edges that form the path
+    :return: a string representing the path
+    """
     edges = edges.copy()
 
     nodes = []
     next_node = 0
+    # Starting from node 0 follow the path until reaching node 0 again
     while len(edges) > 0:
         found = False
 
@@ -77,7 +83,13 @@ def pretty_print_path(edges):
     return " ".join([str(el) for el in nodes])
 
 
-def calculate_path_total_distance(edges, dist):
+def calculate_path_total_length(edges, dist):
+    """
+    Calculate the total length of the given path
+    :param edges: a list of tuples representing the edges that form the path
+    :param dist: a matrix containing the distances between the vertices references in the tuples
+    :return: the total length of the given path
+    """
     tot_dist = 0
     for (i, j) in edges:
         tot_dist += dist[i, j]

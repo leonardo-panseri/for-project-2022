@@ -1,6 +1,6 @@
 import mip
 import math
-from model.utils import build_distance_matrix, calculate_path_total_distance
+from model.utils import build_distance_matrix, calculate_path_total_length
 
 
 def sweep(markets_num, x_coords, y_coords, max_stores_per_route):
@@ -114,7 +114,7 @@ def cluster_first_route_second(markets_num, dist, x_coords, y_coords, max_stores
         effective_path = [(cluster[i], cluster[j]) for (i, j) in path]
         paths.append(effective_path)
 
-        cost += calculate_path_total_distance(path, cluster_dist) * truck_fee_per_km
+        cost += calculate_path_total_length(path, cluster_dist) * truck_fee_per_km
 
     cost += truck_fixed_fee * len(paths)
 
