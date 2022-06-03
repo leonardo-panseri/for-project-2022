@@ -1,6 +1,6 @@
 import mip
 import math
-from model.utils import build_distance_matrix
+from model.utils import build_distance_matrix, calculate_path_total_distance
 
 
 def sweep(markets_num, x_coords, y_coords, max_stores_per_route):
@@ -98,14 +98,15 @@ def cluster_first_route_second(markets_num, dist, x_coords, y_coords, max_stores
 
     clusters = clustering_method(markets_num, x_coords, y_coords, max_stores_per_route)
 
+    cost = 0
+
     paths = []
     for cluster in clusters:
         cluster.append(0)
-        cluster.sort()
 
         n = len(cluster)
-        cluster_x_coords = [x_coords[i] for i in range(markets_num) if i in cluster]
-        cluster_y_coords = [y_coords[i] for i in range(markets_num) if i in cluster]
+        cluster_x_coords = [x_coords[i] for i in cluster]
+        cluster_y_coords = [y_coords[i] for i in cluster]
 
         cluster_dist, _ = build_distance_matrix(n, cluster_x_coords, cluster_y_coords)
         path = build_tsp_model_and_optimize(n, cluster_dist)
@@ -113,7 +114,11 @@ def cluster_first_route_second(markets_num, dist, x_coords, y_coords, max_stores
         effective_path = [(cluster[i], cluster[j]) for (i, j) in path]
         paths.append(effective_path)
 
-    return paths
+        cost += calculate_path_total_distance(path, cluster_dist) * truck_fee_per_km
+
+    cost += truck_fixed_fee * len(paths)
+
+    return paths, cost
 
 
 def linear_relaxation(markets_num, dist, x_coords, y_coords, max_stores_per_route, truck_fixed_fee, truck_fee_per_km):
@@ -221,7 +226,7 @@ def linear_relaxation(markets_num, dist, x_coords, y_coords, max_stores_per_rout
         subtour = find_shortest_subtour(paths)
         print(subtour)
 
-    return ""
+    return "", 0
 
 
 def find_shortest_subtour(paths):

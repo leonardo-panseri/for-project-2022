@@ -61,6 +61,7 @@ def pretty_print_path(edges):
     next_node = 0
     while len(edges) > 0:
         found = False
+
         for edge in edges:
             if edge[0] == next_node:
                 nodes.append(edge[0])
@@ -68,8 +69,16 @@ def pretty_print_path(edges):
                 edges.remove(edge)
                 found = True
                 continue
-        if not found:
-            return f"ERROR: Node {next_node} not found"
-    nodes.append(0)
 
+        if not found:
+            raise Exception(f"Node {next_node} not found")
+
+    nodes.append(0)
     return " ".join([str(el) for el in nodes])
+
+
+def calculate_path_total_distance(edges, dist):
+    tot_dist = 0
+    for (i, j) in edges:
+        tot_dist += dist[i, j]
+    return tot_dist

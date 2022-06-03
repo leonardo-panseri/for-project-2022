@@ -17,18 +17,25 @@ distance_matrix, max_dist_between_locations = build_distance_matrix(locations_nu
 
 
 def solve(save=False, visualize=False):
-    installed_markets = find_optimal_locations(locations_num, distance_matrix, x_coords, y_coords, usable,
-                                               direct_build_costs, max_dist_from_market, min_dist_between_markets, save)
+    installed_markets, installation_cost = find_optimal_locations(locations_num, distance_matrix, x_coords, y_coords,
+                                                                  usable, direct_build_costs, max_dist_from_market,
+                                                                  min_dist_between_markets, save)
     print("Shops: " + " ".join([str(el) for el in installed_markets]))
 
     markets_x_coords = [x_coords[i] for i in range(locations_num) if i in installed_markets]
     markets_y_coords = [y_coords[i] for i in range(locations_num) if i in installed_markets]
-    markets_dist, max_dist_between_markets = build_distance_matrix(len(installed_markets), markets_x_coords, markets_y_coords)
-    paths = find_vehicle_paths(installed_markets, markets_dist, markets_x_coords, markets_y_coords,
-                               max_stores_per_route, truck_fixed_fee, truck_fee_per_km)
+    markets_dist, max_dist_between_markets = build_distance_matrix(len(installed_markets), markets_x_coords,
+                                                                   markets_y_coords)
+    paths, maintenance_cost = find_vehicle_paths(installed_markets, markets_dist, markets_x_coords, markets_y_coords,
+                                                 max_stores_per_route, truck_fixed_fee, truck_fee_per_km)
 
     for i in range(len(paths)):
         print(f"Path {i + 1}: {pretty_print_path(paths[i])}")
+
+    print("\n==== Costs ====")
+    print(f"Installation cost: {round(installation_cost, 2)}")
+    print(f"Maintenance cost: {round(maintenance_cost, 2)}")
+    print(f"Total cost: {round(installation_cost + maintenance_cost, 2)}")
 
     if visualize:
         visualize_solution()

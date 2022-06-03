@@ -8,8 +8,6 @@ import json
 
 def build_location_model_and_optimize(all_locations, market_locations, dist, direct_build_costs,
                                       max_dist_from_market, min_dist_between_markets):
-    print(min_dist_between_markets)
-    print(max_dist_from_market)
     # Initialize model and disable verbose logging
     m = mip.Model()
     m.verbose = 0
@@ -81,15 +79,13 @@ def build_location_model_and_optimize(all_locations, market_locations, dist, dir
                 if dist[i, j] < min_dist_between_markets:
                     print(dist[i, j])
 
-    print(m.objective_value)
-
     return m.objective_value, x, y, status
 
 
 def find_optimal_locations(n, dist, x_coords, y_coords, usable, direct_build_costs,
                            max_dist_from_market, min_dist_between_markets, save=False):
     """
-    Finds the optimal solution for the location problem and prints it
+    Finds the optimal solution for the location problem
     :param n: the number of locations in input
     :param dist: a nxn matrix containing distances between every location
     :param x_coords: the array containing the x coordinates for each location
@@ -129,4 +125,4 @@ def find_optimal_locations(n, dist, x_coords, y_coords, usable, direct_build_cos
         f.write(json.dumps(result))
         f.close()
 
-    return installed_markets
+    return installed_markets, obj_value
