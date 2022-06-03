@@ -7,7 +7,7 @@ from model.vehicle_routing_model import find_vehicle_paths
 from model.visualization import visualize_input, visualize_solution
 
 # Import data, change the name of the file to change dataset
-from data.robomarkt_0 import Cx as x_coords, Cy as y_coords, usable, Dc as direct_build_costs, \
+from data.robomarkt_4 import Cx as x_coords, Cy as y_coords, usable, Dc as direct_build_costs, \
     maxdist as max_dist_from_market, mindist as min_dist_between_markets, maxstores as max_stores_per_route, \
     Fc as truck_fixed_fee, Vc as truck_fee_per_km
 
@@ -26,7 +26,7 @@ def solve(save=False, visualize=False):
     markets_dist, max_dist_between_markets = build_distance_matrix(len(installed_markets), markets_x_coords, markets_y_coords)
     paths = find_vehicle_paths(installed_markets, markets_dist, markets_x_coords, markets_y_coords,
                                max_stores_per_route, truck_fixed_fee, truck_fee_per_km)
-    print(paths)
+    # print(paths)
 
     if visualize:
         visualize_solution()

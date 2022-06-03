@@ -8,6 +8,8 @@ import json
 
 def build_location_model_and_optimize(all_locations, market_locations, dist, direct_build_costs,
                                       max_dist_from_market, min_dist_between_markets):
+    print(min_dist_between_markets)
+    print(max_dist_from_market)
     # Initialize model and disable verbose logging
     m = mip.Model()
     m.verbose = 0
@@ -60,8 +62,8 @@ def build_location_model_and_optimize(all_locations, market_locations, dist, dir
     # Ensures that two markets cannot be opened if the distance between each other is lower than a threshold
     for j in market_locations:
         for h in market_locations:
-            if j != h and dist[j, h] != 0:
-                m.add_constr(dist[j, h] >= min_dist_between_markets * (-1 + y[h] + y[j]))
+            if h != j:
+                m.add_constr(dist[j, h] + (min_dist_between_markets + 1) * (2 - y[h] - y[j]) >= min_dist_between_markets)
 
     # ##################
     # Objective function
@@ -72,6 +74,13 @@ def build_location_model_and_optimize(all_locations, market_locations, dist, dir
 
     # Perform optimization of the model
     status = m.optimize()
+
+    for i in market_locations:
+        for j in market_locations:
+            if y[i].x == 1 and y[j].x == 1 and i != j:
+                if dist[i, j] < min_dist_between_markets:
+                    print(dist[i, j])
+
 
     print(m.objective_value)
 
