@@ -81,7 +81,6 @@ def build_location_model_and_optimize(all_locations, market_locations, dist, dir
                 if dist[i, j] < min_dist_between_markets:
                     print(dist[i, j])
 
-
     print(m.objective_value)
 
     return m.objective_value, x, y, status

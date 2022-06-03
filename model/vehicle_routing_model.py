@@ -51,6 +51,11 @@ def linear_relaxation(markets_num, dist, x_coords, y_coords, max_stores_per_rout
     # Initialize model and disable verbose logging
     m = mip.Model()
     m.verbose = 0
+
+    # #########
+    # Sets
+    # #########
+
     markets_0 = range(markets_num)
     markets = range(1, markets_num)
     trucks = range(markets_num - 1)
@@ -60,10 +65,10 @@ def linear_relaxation(markets_num, dist, x_coords, y_coords, max_stores_per_rout
     # #########
 
     # u_h: 1 if truck h is used, 0 otherwise
-    u = {h: m.add_var(var_type=mip.BINARY) for h in trucks}
+    u = {h: m.add_var(lb=0, ub=1) for h in trucks}
 
     # a_ijh: 1 if truck h path contains edge (i,j), 0 otherwise
-    a = {(i, j, h): m.add_var(var_type=mip.BINARY) for i in markets_0 for j in markets_0 for h in trucks}
+    a = {(i, j, h): m.add_var(lb=0, ub=1) for i in markets_0 for j in markets_0 for h in trucks}
 
     # ###########
     # Constraints
@@ -103,22 +108,88 @@ def linear_relaxation(markets_num, dist, x_coords, y_coords, max_stores_per_rout
     # Perform optimization of the model
     status = m.optimize()
 
-
-
     if status != mip.OptimizationStatus.OPTIMAL:
         print(f"Problem has no optimal solution: {status}")
         exit()
 
+    paths = []
     for h in trucks:
-        if u[h].x == 1:
+        if u[h].x > 1e-5:
             edges = []
             for i in range(markets_num):
                 for j in range(markets_num):
-                    if a[i, j, h].x == 1:
+                    if a[i, j, h].x > 1e-5:
                         edges.append((i, j))
             print(f"Path {h}: {edges}")
+            paths.append(edges)
+
+    subtour = find_shortest_subtour(paths)
+    print(subtour)
+
+
+    while(subtour is not None):
+        for h in trucks:
+            m.add_constr(mip.xsum(a[i, j, h] for (i, j) in subtour) <= len(subtour) - 1)
+            for (i, j) in subtour:
+                a[i, j, h].var_type = mip.BINARY
+
+        status = m.optimize()
+        if status != mip.OptimizationStatus.OPTIMAL:
+            print(f"Problem has no optimal solution: {status}")
+            exit()
+
+        paths = []
+        for h in trucks:
+            if u[h].x > 1e-5:
+                edges = []
+                for i in range(markets_num):
+                    for j in range(markets_num):
+                        if a[i, j, h].x > 1e-5:
+                            edges.append((i, j))
+                print(f"Path {h}: {edges}")
+                paths.append(edges)
+
+        subtour = find_shortest_subtour(paths)
+        print(subtour)
 
     return
+
+
+def find_shortest_subtour(paths):
+    min_subtour = None
+
+    for path in paths:
+        start = None
+        next = None
+        subtours = [[]]
+        current_subtour = 0
+
+        while len(path) > 0:
+            for edge in path:
+                if start is None or next is None:
+                    start = edge[0]
+                    next = edge[1]
+                    path.remove(edge)
+                    subtours[current_subtour].append(edge)
+                if edge[0] == next:
+                    next = edge[1]
+                    subtours[current_subtour].append(edge)
+                    path.remove(edge)
+                    if next == start:
+                        if len(subtours[current_subtour]) == 2:
+                            return subtours[current_subtour]
+                        subtours.append([])
+                        current_subtour += 1
+                        start = None
+                        next = None
+
+        for subtour in subtours:
+            if min_subtour is None:
+                min_subtour = subtour
+            elif len(subtour) < len(min_subtour):
+                min_subtour = subtour
+
+    return min_subtour
 
 
 def find_vehicle_paths(installed_markets, dist, x_coords, y_coords, max_stores_per_route, truck_fixed_fee,
