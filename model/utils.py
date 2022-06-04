@@ -1,3 +1,4 @@
+import json
 import math
 
 
@@ -94,3 +95,14 @@ def calculate_path_total_length(edges, dist):
     for (i, j) in edges:
         tot_dist += dist[i, j]
     return tot_dist
+
+
+def write_json_file(file_name, data):
+    """
+    Converts data to JSON and writes it to the file at the given path
+    :param file_name: the name of the file to write
+    :param data: any python object that can be converted to JSON
+    """
+    f = open(f"out/{file_name}", "w")
+    f.write(json.dumps(data))
+    f.close()

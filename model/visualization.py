@@ -58,7 +58,7 @@ def build_base_graph(n, radius):
     return net
 
 
-def visualize_solution(scale=20, show_all_edges=False):
+def visualize_installation_solution(scale=20, show_all_edges=False):
     """
     Constructs a network graph to visualize the solution and shows it
     :param scale: multiplicative factor for coordinates to show nodes more distanced (default: 20)
@@ -110,7 +110,11 @@ def visualize_solution(scale=20, show_all_edges=False):
             elif x[j] == 0 and x[i][j] == 1:  # Check if all selected edges go to nodes that are selected
                 print(f"ERROR: arc ({i},{j}) is selected but N{j} is not selected")
 
-    net.show("result_visualization.html")
+    net.show("installation_result.html")
+
+
+def visualize_maintenance_solution():
+    pass
 
 
 def visualize_input(n, dist, x_coords, y_coords, usable, direct_build_costs, max_dist_from_market,
@@ -147,4 +151,4 @@ def visualize_input(n, dist, x_coords, y_coords, usable, direct_build_costs, max
                     # Add all edges that connect nodes not in range of each other colored red
                     net.add_edge(i, j, color="red", label=round(dist[i, j], 1))
 
-    net.show("input_visualization.html")
+    net.show("input.html")

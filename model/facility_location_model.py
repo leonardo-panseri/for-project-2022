@@ -1,6 +1,8 @@
 import mip
 import json
 
+from model.utils import write_json_file
+
 
 def build_location_model_and_optimize(all_locations, market_locations, dist, direct_build_costs,
                                       max_dist_from_market, min_dist_between_markets):
@@ -111,16 +113,9 @@ def find_optimal_locations(n, dist, x_coords, y_coords, usable, direct_build_cos
 
     if save:
         # Save input of model and optimal solution to a JSON file
-        coords = {i: (x_coords[i], y_coords[i]) for i in range(n)}
         y_values = [y[i].x for i in market_locations]
         x_values = [[x[i, j].x for j in market_locations] for i in all_locations]
-        dist_values = [[dist[i, j] for j in range(n)] for i in range(n)]
-        result = {"n": n, "market_locations": market_locations, "maxdist": max_dist_from_market,
-                  "mindist": min_dist_between_markets, "coords": coords, "usable": usable, "cost": direct_build_costs,
-                  "dist": dist_values, "obj_value": obj_value, "x": x_values, "y": y_values}
-
-        f = open("result.json", "w")
-        f.write(json.dumps(result))
-        f.close()
+        data = {"market_locations": market_locations, "cost": obj_value, "x": x_values, "y": y_values}
+        write_json_file("location_results.json", data)
 
     return installed_markets, obj_value
