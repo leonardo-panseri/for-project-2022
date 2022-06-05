@@ -8,7 +8,7 @@ from model.vehicle_routing_model import find_vehicle_paths
 from model.visualization import visualize_input, visualize_installation_solution
 
 # Import data, change the name of the file to change dataset
-from data.robomarkt_big_3 import Cx as x_coords, Cy as y_coords, usable, Dc as direct_build_costs, \
+from data.robomarkt_0 import Cx as x_coords, Cy as y_coords, usable, Dc as direct_build_costs, \
     maxdist as max_dist_from_market, mindist as min_dist_between_markets, maxstores as max_stores_per_route, \
     Fc as truck_fixed_fee, Vc as truck_fee_per_km
 
@@ -24,6 +24,15 @@ def solve(save=False, visualize=False):
     :param visualize: if set to True builds and shows a graph representation of the solution, default is False
     :return:
     """
+    if save:
+        # Convert data to make it translatable to JSON
+        coords = {i: (x_coords[i], y_coords[i]) for i in range(locations_num)}
+        dist_values = [[distance_matrix[i, j] for j in range(locations_num)] for i in range(locations_num)]
+        data = {"locations_num": locations_num, "maxdist": max_dist_from_market, "mindist": min_dist_between_markets,
+                "maxstores": max_stores_per_route, "coords": coords, "usable": usable, "cost": direct_build_costs,
+                "dist": dist_values}
+        write_json_file("input.json", data)
+
     # Solve the location facility part of the problem, finding where to install markets to minimize build cost
     # and to serve every customer
     time_start = timer()
@@ -42,7 +51,7 @@ def solve(save=False, visualize=False):
     # Solve the vehicle routing problem for the maintenance of the markets chosen in the previous step
     time_start = timer()
     paths, maintenance_cost = find_vehicle_paths(installed_markets, markets_dist, markets_x_coords, markets_y_coords,
-                                                 max_stores_per_route, truck_fixed_fee, truck_fee_per_km)
+                                                 max_stores_per_route, truck_fixed_fee, truck_fee_per_km, save)
     time_end = timer()
     for i in range(len(paths)):
         print(f"Path {i + 1}: {pretty_print_path(paths[i])}")
@@ -58,14 +67,7 @@ def solve(save=False, visualize=False):
     print("\n==== Execution Time ====")
     print(f"Installation: {round(installation_exec_time, 2)} s")
     print(f"Maintenance: {round(maintenance_exec_time, 2)} s")
-    print(f"Total cost: {round(installation_exec_time + maintenance_exec_time, 2)} s")
-
-    if save:
-        coords = {i: (x_coords[i], y_coords[i]) for i in range(locations_num)}
-        dist_values = [[distance_matrix[i, j] for j in range(locations_num)] for i in range(locations_num)]
-        data = {"maxdist": max_dist_from_market, "mindist": min_dist_between_markets, "maxstores": max_stores_per_route,
-                "coords": coords, "usable": usable, "cost": direct_build_costs, "dist": dist_values}
-        write_json_file("input.json", data)
+    print(f"Total execution time: {round(installation_exec_time + maintenance_exec_time, 2)} s")
 
     if visualize:
         visualize_installation_solution()
@@ -83,8 +85,7 @@ if __name__ == '__main__':
             visualize_installation_solution()
             exit()
         elif argv[1] == "visualizeinput":  # Visualize input data
-            visualize_input(locations_num, distance_matrix, x_coords, y_coords, usable, direct_build_costs,
-                            max_dist_from_market)
+            visualize_input()
             exit()
 
 # In any case (import of the module or execution as a script) optimize the model and print the result

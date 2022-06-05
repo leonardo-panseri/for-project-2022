@@ -1,6 +1,6 @@
 import mip
 import math
-from model.utils import build_distance_matrix, calculate_path_total_length
+from model.utils import build_distance_matrix, calculate_path_total_length, write_json_file
 
 
 def sweep(markets_num, x_coords, y_coords, max_stores_per_route):
@@ -276,10 +276,14 @@ def find_shortest_subtour(paths):
 
 
 def find_vehicle_paths(installed_markets, dist, x_coords, y_coords, max_stores_per_route, truck_fixed_fee,
-                       truck_fee_per_km):
+                       truck_fee_per_km, save=False):
     model = cluster_first_route_second
 
     n = len(installed_markets)
-    result = model(n, dist, x_coords, y_coords, max_stores_per_route, truck_fixed_fee, truck_fee_per_km)
+    paths, cost = model(n, dist, x_coords, y_coords, max_stores_per_route, truck_fixed_fee, truck_fee_per_km)
 
-    return result
+    if save:
+        data = {"paths": paths, "cost": cost}
+        write_json_file("maintenance_results.json", data)
+
+    return paths, cost

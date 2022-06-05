@@ -1,6 +1,46 @@
 import json
 
 
+def load_data_from_files(input_only=False):
+    """
+    Load data from JSON files and returns it
+    :return: the input and results data from the JSON files in out/ directory
+    """
+    keys = {"locations_num", "max_dist_from_market", "min_dist_between_markets", "max_stores_per_route", "coords",
+            "usable", "direct_build_cost", "dist"}
+    with open("out/input.json") as f_input:
+        input_data = json.loads(f_input.read())
+        locations_num: int = input_data["locations_num"]
+        max_dist_from_market = input_data["maxdist"]
+        min_dist_between_markets = input_data["mindist"]
+        max_stores_per_route = input_data["maxstores"]
+        coords = {int(k): v for k, v in input_data["coords"].items()}
+        usable = input_data["usable"]
+        direct_build_cost = input_data["cost"]
+        dist = input_data["dist"]
+
+        data = [locations_num, max_dist_from_market, min_dist_between_markets, max_stores_per_route, coords, usable,
+                direct_build_cost, dist]
+
+        if not input_only:
+
+            with open("out/location_results.json") as f_location, open("out/maintenance_results.json") as f_maintenance:
+                location_data = json.loads(f_location.read())
+                market_locations = location_data["market_locations"]
+                installation_cost = location_data["cost"]
+                adj_matrix = location_data["adj_matrix"]
+
+                maintenance_data = json.loads(f_maintenance.read())
+                maintenance_paths = maintenance_data["paths"]
+                maintenance_cost = maintenance_data["cost"]
+
+                keys = keys.union({"market_locations", "installation_cost", "adj_matrix", "maintenance_paths",
+                                   "maintenance_cost"})
+                data.extend([market_locations, installation_cost, adj_matrix, maintenance_paths, maintenance_cost])
+
+    return dict.fromkeys(keys, data)
+
+
 def build_base_graph(n, radius):
     """
     Constructs a base PyVis network graph with fixed positioning and a legend
@@ -58,57 +98,41 @@ def build_base_graph(n, radius):
     return net
 
 
-def visualize_installation_solution(scale=20, show_all_edges=False):
+def visualize_installation_solution(scale=20):
     """
     Constructs a network graph to visualize the solution and shows it
     :param scale: multiplicative factor for coordinates to show nodes more distanced (default: 20)
-    :param show_all_edges: if set to False (default) only edges that connect nodes in range and that have as destination
-                           a node that is selected in the optimal solution are shown
     """
-    # Load data from file
-    f = open("result.json")
-    data = json.loads(f.read())
-
-    n = data["n"]
+    data = load_data_from_files()
     market_locations = data["market_locations"]
-    rn = data["maxdist"]
-    coords = {int(k): v for k, v in data["coords"].items()}
-    usbl = data["usable"]
-    cost = data["cost"]
+    adj_matrix = data["adj_matrix"]
+    locations_num = data["locations_num"]
+    coords = data["coords"]
+    max_dist_from_market = data["max_dist_from_market"]
+    usable = data["usable"]
+    direct_build_cost = data["direct_build_cost"]
     dist = data["dist"]
-    x = data["x"]
-    y = data["y"]
 
-    net = build_base_graph(n, rn)
+    print(locations_num)
 
-    for i in range(len(x)):
-        # Check if all selected nodes are usable
-        # if y[i] == 1 and not usbl[i]:
-        #     print(f"ERROR: node N{i} is selected in the optimal solution, but not usable")
-        y_val = 0
-        if i in market_locations:
-            y_val = y[market_locations.index(i)]
+    net = build_base_graph(locations_num, max_dist_from_market)
 
+    locations = range(locations_num)
+
+    for i in locations:
         # Add all n nodes to the graph with the colour: green if selected in the optimal solution,
         # black if not selected but usable, red if not usable
-        color = "green" if y_val == 1 else "red" if not usbl[i] else "black"
+        color = "green" if i in market_locations else "red" if not usable[i] else "black"
         net.add_node(i, x=coords[i][0] * scale, y=-coords[i][1] * scale, size=4,
                      label=f"N{i}", color=color,
-                     title=f"Usable: {usbl[i]}<br/>Cost: {cost[i]}")
+                     title=f"Usable: {usable[i]}<br/>Cost: {direct_build_cost[i]}")
 
-    for i in range(len(x)):
-        for j in range(len(y)):
-            location_index = market_locations[j]
-            if show_all_edges or y[j] == 1:  # Show only edges to nodes that have been selected
-                if show_all_edges or dist[i][location_index] <= rn:  # Show only edges in range
-                    # Add all edges to the graph with colour: green if selected om the optimal solution,
-                    # black if not selected but in range, red if not in range
-                    color = "green" if x[i][j] == 1 else "black" if dist[i][location_index] <= rn else "red"
-                    net.add_edge(i, location_index, label=str(round(dist[i][location_index], 1)), color=color)
-                elif dist[i][location_index] > rn and x[i][j] == 1:  # Check if for all selected edges: distance <= max radius
-                    print(f"ERROR: arc ({i},{j}) is selected but their distance is greater than max radius")
-            elif x[j] == 0 and x[i][j] == 1:  # Check if all selected edges go to nodes that are selected
-                print(f"ERROR: arc ({i},{j}) is selected but N{j} is not selected")
+    for i in locations:
+        for j in locations:
+            if adj_matrix[i][j] == 1:
+                # Add all selected edges to the graph
+                color = "green"
+                net.add_edge(i, j, label=str(round(dist[i][j], 1)), color=color)
 
     net.show("installation_result.html")
 
@@ -117,38 +141,35 @@ def visualize_maintenance_solution():
     pass
 
 
-def visualize_input(n, dist, x_coords, y_coords, usable, direct_build_costs, max_dist_from_market,
-                    scale=20, show_all_edges=False):
+def visualize_input(scale=20):
     """
     Constructs a network graph to visualize the input data and shows it
-    :param n: the number of locations in input
-    :param dist: a nxn matrix containing distances between locations
-    :param x_coords: the array containing the x coordinates for each location
-    :param y_coords: the array containing the y coordinates for each location
-    :param usable: the array containing booleans that represent if a location is suitable for market construction
-    :param direct_build_costs: the array containing costs to build a market in a location
-    :param max_dist_from_market: the maximum distance at which a location can be served by a market
     :param scale: multiplicative factor for coordinates to show nodes more distanced (default: 20)
-    :param show_all_edges: if set to False (default) only edges that connect nodes in range are shown
     """
-    net = build_base_graph(n, max_dist_from_market)
+    data = load_data_from_files(True)
+    locations_num = data["locations_num"]
+    usable = data["usable"]
+    coords = data["coords"]
+    max_dist_from_market = data["max_dist_from_market"]
+    direct_build_costs = data["direct_build_costs"]
+    dist = data["dist"]
 
-    market_locations = [i for i in range(n) if usable[i]]
+    net = build_base_graph(locations_num, max_dist_from_market)
 
-    for i in range(n):
+    locations = range(locations_num)
+    market_locations = [i for i in locations if usable[i]]
+
+    for i in locations:
         # Add all n nodes to the graph with colour: black if usable, red if not
         color = "black" if usable[i] else "red"
-        net.add_node(i, x=x_coords[i] * scale, y=-y_coords[i] * scale, size=4, label=f"N{i}", color=color,
+        net.add_node(i, x=coords[i][0] * scale, y=-coords[i][1] * scale, size=4, label=f"N{i}", color=color,
                      title=f"Usable: {usable[i]}<br/>Cost: {direct_build_costs[i]}")
 
-    for i in range(n):
+    for i in locations:
         for j in market_locations:
             if i != j:  # Do not show self-loops
-                if dist[i, j] <= max_dist_from_market:  # If node i is in range of node j
+                if dist[i][j] <= max_dist_from_market:  # If node i is in range of node j
                     # Add all edges that connect nodes in range of each other colored black
-                    net.add_edge(i, j, color="black", label=round(dist[i, j], 1))
-                elif show_all_edges:
-                    # Add all edges that connect nodes not in range of each other colored red
-                    net.add_edge(i, j, color="red", label=round(dist[i, j], 1))
+                    net.add_edge(i, j, color="black", label=round(dist[i][j], 1))
 
     net.show("input.html")
