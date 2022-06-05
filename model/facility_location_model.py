@@ -113,9 +113,8 @@ def find_optimal_locations(n, dist, x_coords, y_coords, usable, direct_build_cos
 
     if save:
         # Save input of model and optimal solution to a JSON file
-        y_values = [y[i].x for i in market_locations]
         x_values = [[x[i, j].x for j in market_locations] for i in all_locations]
-        data = {"market_locations": market_locations, "cost": obj_value, "x": x_values, "y": y_values}
+        data = {"market_locations": market_locations, "cost": obj_value, "adj_matrix": x_values}
         write_json_file("location_results.json", data)
 
     return installed_markets, obj_value

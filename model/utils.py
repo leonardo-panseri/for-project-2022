@@ -1,5 +1,6 @@
 import json
 import math
+import os.path
 
 
 def distance(x1, y1, x2, y2):
@@ -103,6 +104,10 @@ def write_json_file(file_name, data):
     :param file_name: the name of the file to write
     :param data: any python object that can be converted to JSON
     """
-    f = open(f"out/{file_name}", "w")
+    folder = "out/"
+    if not os.path.exists(folder):
+        os.mkdir(folder)
+
+    f = open(folder + file_name, "w")
     f.write(json.dumps(data))
     f.close()
