@@ -6,39 +6,22 @@ def load_data_from_files(input_only=False):
     Load data from JSON files and returns it
     :return: the input and results data from the JSON files in out/ directory
     """
-    keys = {"locations_num", "max_dist_from_market", "min_dist_between_markets", "max_stores_per_route", "coords",
-            "usable", "direct_build_cost", "dist"}
+    data = {}
     with open("out/input.json") as f_input:
         input_data = json.loads(f_input.read())
-        locations_num: int = input_data["locations_num"]
-        max_dist_from_market = input_data["maxdist"]
-        min_dist_between_markets = input_data["mindist"]
-        max_stores_per_route = input_data["maxstores"]
-        coords = {int(k): v for k, v in input_data["coords"].items()}
-        usable = input_data["usable"]
-        direct_build_cost = input_data["cost"]
-        dist = input_data["dist"]
-
-        data = [locations_num, max_dist_from_market, min_dist_between_markets, max_stores_per_route, coords, usable,
-                direct_build_cost, dist]
+        input_data["coords"] = {int(k): v for k, v in input_data["coords"].items()}
+        data.update(input_data)
 
         if not input_only:
 
             with open("out/location_results.json") as f_location, open("out/maintenance_results.json") as f_maintenance:
                 location_data = json.loads(f_location.read())
-                market_locations = location_data["market_locations"]
-                installation_cost = location_data["cost"]
-                adj_matrix = location_data["adj_matrix"]
+                data.update(location_data)
 
                 maintenance_data = json.loads(f_maintenance.read())
-                maintenance_paths = maintenance_data["paths"]
-                maintenance_cost = maintenance_data["cost"]
+                data.update(maintenance_data)
 
-                keys = keys.union({"market_locations", "installation_cost", "adj_matrix", "maintenance_paths",
-                                   "maintenance_cost"})
-                data.extend([market_locations, installation_cost, adj_matrix, maintenance_paths, maintenance_cost])
-
-    return dict.fromkeys(keys, data)
+    return data
 
 
 def build_base_graph(n, radius):
@@ -100,20 +83,18 @@ def build_base_graph(n, radius):
 
 def visualize_installation_solution(scale=20):
     """
-    Constructs a network graph to visualize the solution and shows it
+    Constructs a network graph to visualize the market installation solution and shows it
     :param scale: multiplicative factor for coordinates to show nodes more distanced (default: 20)
     """
     data = load_data_from_files()
-    market_locations = data["market_locations"]
+    installed_markets = data["installed_markets"]
     adj_matrix = data["adj_matrix"]
     locations_num = data["locations_num"]
     coords = data["coords"]
     max_dist_from_market = data["max_dist_from_market"]
     usable = data["usable"]
-    direct_build_cost = data["direct_build_cost"]
+    direct_build_costs = data["direct_build_costs"]
     dist = data["dist"]
-
-    print(locations_num)
 
     net = build_base_graph(locations_num, max_dist_from_market)
 
@@ -122,10 +103,9 @@ def visualize_installation_solution(scale=20):
     for i in locations:
         # Add all n nodes to the graph with the colour: green if selected in the optimal solution,
         # black if not selected but usable, red if not usable
-        color = "green" if i in market_locations else "red" if not usable[i] else "black"
-        net.add_node(i, x=coords[i][0] * scale, y=-coords[i][1] * scale, size=4,
-                     label=f"N{i}", color=color,
-                     title=f"Usable: {usable[i]}<br/>Cost: {direct_build_cost[i]}")
+        color = "green" if i in installed_markets else "red" if not usable[i] else "black"
+        net.add_node(i, x=coords[i][0] * scale, y=-coords[i][1] * scale, size=4, label=f"N{i}", color=color,
+                     title=f"Usable: {usable[i]}<br/>Cost: {direct_build_costs[i]}")
 
     for i in locations:
         for j in locations:
@@ -134,11 +114,34 @@ def visualize_installation_solution(scale=20):
                 color = "green"
                 net.add_edge(i, j, label=str(round(dist[i][j], 1)), color=color)
 
-    net.show("installation_result.html")
+    net.show("out/html/installation_result.html")
 
 
-def visualize_maintenance_solution():
-    pass
+def visualize_maintenance_solution(scale=20):
+    """
+    Constructs a network graph to visualize the market maintenance solution and shows it
+    :param scale: multiplicative factor for coordinates to show nodes more distanced (default: 20)
+    """
+    data = load_data_from_files()
+    installed_markets = data["installed_markets"]
+    coords = data["coords"]
+    max_dist_from_market = data["max_dist_from_market"]
+    dist = data["dist"]
+    maintenance_paths = data["maintenance_paths"]
+
+    net = build_base_graph(max(installed_markets) + 1, max_dist_from_market)
+
+    for i in installed_markets:
+        # Add all markets as nodes of the graph
+        net.add_node(i, x=coords[i][0] * scale, y=-coords[i][1] * scale, size=4, label=f"N{i}")
+
+    for path in maintenance_paths:
+        for edge in path:
+            # Add all edges forming the maintenance paths to the graph
+            i, j = edge
+            net.add_edge(i, j, label=str(round(dist[i][j], 1)))
+
+    net.show("out/html/maintenance_result.html")
 
 
 def visualize_input(scale=20):
@@ -172,4 +175,4 @@ def visualize_input(scale=20):
                     # Add all edges that connect nodes in range of each other colored black
                     net.add_edge(i, j, color="black", label=round(dist[i][j], 1))
 
-    net.show("input.html")
+    net.show("out/html/input.html")

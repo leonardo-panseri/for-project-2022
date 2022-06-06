@@ -111,7 +111,8 @@ def cluster_first_route_second(markets_num, dist, x_coords, y_coords, max_stores
         cluster_dist, _ = build_distance_matrix(n, cluster_x_coords, cluster_y_coords)
         path = build_tsp_model_and_optimize(n, cluster_dist)
 
-        effective_path = [(cluster[i], cluster[j]) for (i, j) in path]
+        effective_path = [(cluster[i], cluster[j]) for i, j in path]
+
         paths.append(effective_path)
 
         cost += calculate_path_total_length(path, cluster_dist) * truck_fee_per_km
@@ -282,8 +283,10 @@ def find_vehicle_paths(installed_markets, dist, x_coords, y_coords, max_stores_p
     n = len(installed_markets)
     paths, cost = model(n, dist, x_coords, y_coords, max_stores_per_route, truck_fixed_fee, truck_fee_per_km)
 
+    effective_paths = [[(installed_markets[i], installed_markets[j]) for i, j in path] for path in paths]
+
     if save:
-        data = {"paths": paths, "cost": cost}
+        data = {"maintenance_paths": effective_paths, "maintenance_cost": cost}
         write_json_file("maintenance_results.json", data)
 
-    return paths, cost
+    return effective_paths, cost

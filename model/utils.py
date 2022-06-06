@@ -82,6 +82,8 @@ def pretty_print_path(edges):
             raise Exception(f"Node {next_node} not found")
 
     nodes.append(0)
+
+    # Return a string containing nodes visited in order separated by spaces
     return " ".join([str(el) for el in nodes])
 
 
@@ -105,8 +107,8 @@ def write_json_file(file_name, data):
     :param data: any python object that can be converted to JSON
     """
     folder = "out/"
-    if not os.path.exists(folder):
-        os.mkdir(folder)
+    if not os.path.exists("out/html/"):
+        os.makedirs("out/html/")
 
     f = open(folder + file_name, "w")
     f.write(json.dumps(data))

@@ -1,11 +1,12 @@
 # Authors:
 # Viola Renne
 # Leonardo Panseri
+
 from timeit import default_timer as timer
 from model.utils import get_input_length, build_distance_matrix, pretty_print_path, write_json_file
 from model.facility_location_model import find_optimal_locations
 from model.vehicle_routing_model import find_vehicle_paths
-from model.visualization import visualize_input, visualize_installation_solution
+from model.visualization import visualize_input, visualize_installation_solution, visualize_maintenance_solution
 
 # Import data, change the name of the file to change dataset
 from data.robomarkt_0 import Cx as x_coords, Cy as y_coords, usable, Dc as direct_build_costs, \
@@ -28,9 +29,9 @@ def solve(save=False, visualize=False):
         # Convert data to make it translatable to JSON
         coords = {i: (x_coords[i], y_coords[i]) for i in range(locations_num)}
         dist_values = [[distance_matrix[i, j] for j in range(locations_num)] for i in range(locations_num)]
-        data = {"locations_num": locations_num, "maxdist": max_dist_from_market, "mindist": min_dist_between_markets,
-                "maxstores": max_stores_per_route, "coords": coords, "usable": usable, "cost": direct_build_costs,
-                "dist": dist_values}
+        data = {"locations_num": locations_num, "max_dist_from_market": max_dist_from_market,
+                "min_dist_between_markets": min_dist_between_markets, "max_stores_per_route": max_stores_per_route,
+                "coords": coords, "usable": usable, "direct_build_costs": direct_build_costs, "dist": dist_values}
         write_json_file("input.json", data)
 
     # Solve the location facility part of the problem, finding where to install markets to minimize build cost
@@ -71,6 +72,7 @@ def solve(save=False, visualize=False):
 
     if visualize:
         visualize_installation_solution()
+        visualize_maintenance_solution()
 
 
 if __name__ == '__main__':
