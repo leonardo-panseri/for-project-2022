@@ -332,20 +332,24 @@ def exact_model_multiple_iteration(markets_num, dist, x_coords, y_coords, max_st
     for h in trucks:
         m.add_constr(mip.xsum(a[0, j, h] for j in markets) == u[h])
 
+    # Take the trucks in index order
     for h in range(markets_num - 2):
         m.add_constr(u[h] >= u[h + 1])
 
+    # Self loops are not allowed
     for i in markets_0:
         m.add_constr(mip.xsum(a[i, i, h] for h in trucks) == 0)
 
-    #
+    # The number of arcs in the backward star must be equal to the number of the forward star
     for i in markets_0:
         for h in trucks:
             m.add_constr(mip.xsum(a[i, j, h] for j in markets_0) == mip.xsum(a[j, i, h] for j in markets_0))
 
+    # If the truck is chosen, the maximum number of arcs in each path must be max_stores_per_route + 1
     for h in trucks:
         m.add_constr(mip.xsum(a[i, j, h] for i in markets_0 for j in markets_0) <= u[h] * (max_stores_per_route + 1))
 
+    # Every node must be reached
     for i in markets:
         m.add_constr(mip.xsum(a[j, i, h] for j in markets_0 for h in trucks) == 1)
 
@@ -381,6 +385,7 @@ def exact_model_multiple_iteration(markets_num, dist, x_coords, y_coords, max_st
     print(subtour)
 
     while(subtour is not None):
+        # Subtour elimination
         for h in trucks:
             m.add_constr(mip.xsum(a[i, j, h] for (i, j) in subtour) <= len(subtour) - 1)
 
