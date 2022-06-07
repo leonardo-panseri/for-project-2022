@@ -180,7 +180,7 @@ def cluster_first_route_second(markets_num, dist, x_coords, y_coords, max_stores
     return paths, cost
 
 
-def linear_relaxation(markets_num, dist, x_coords, y_coords, max_stores_per_route, truck_fixed_fee, truck_fee_per_km):
+def exact_model(markets_num, dist, x_coords, y_coords, max_stores_per_route, truck_fixed_fee, truck_fee_per_km):
     # Initialize model and disable verbose logging
     m = mip.Model()
     m.verbose = 0
@@ -198,10 +198,10 @@ def linear_relaxation(markets_num, dist, x_coords, y_coords, max_stores_per_rout
     # #########
 
     # u_h: 1 if truck h is used, 0 otherwise
-    u = {h: m.add_var(lb=0, ub=1) for h in trucks}
+    u = {h: m.add_var(var_type=mip.BINARY) for h in trucks}
 
     # a_ijh: 1 if truck h path contains edge (i,j), 0 otherwise
-    a = {(i, j, h): m.add_var(lb=0, ub=1) for i in markets_0 for j in markets_0 for h in trucks}
+    a = {(i, j, h): m.add_var(var_type=mip.BINARY) for i in markets_0 for j in markets_0 for h in trucks}
 
     # ###########
     # Constraints
@@ -259,12 +259,10 @@ def linear_relaxation(markets_num, dist, x_coords, y_coords, max_stores_per_rout
     subtour = find_shortest_subtour(paths)
     print(subtour)
 
-
     while(subtour is not None):
         for h in trucks:
             m.add_constr(mip.xsum(a[i, j, h] for (i, j) in subtour) <= len(subtour) - 1)
-            for (i, j) in subtour:
-                a[i, j, h].var_type = mip.BINARY
+
 
         status = m.optimize()
         if status != mip.OptimizationStatus.OPTIMAL:
@@ -285,7 +283,7 @@ def linear_relaxation(markets_num, dist, x_coords, y_coords, max_stores_per_rout
         subtour = find_shortest_subtour(paths)
         print(subtour)
 
-    return "", 0
+    return paths, m.objective_value
 
 
 def find_shortest_subtour(paths):
@@ -372,7 +370,7 @@ def find_vehicle_paths(installed_markets, dist, x_coords, y_coords, max_stores_p
     :return: an array containing the paths, each path is an array containing tuples that represent edges in the graph
              and the total maintenance cost
     """
-    model = cluster_first_route_second
+    model = exact_model
 
     n = len(installed_markets)
     paths, cost = model(n, dist, x_coords, y_coords, max_stores_per_route, truck_fixed_fee, truck_fee_per_km)
