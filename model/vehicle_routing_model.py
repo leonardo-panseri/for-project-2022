@@ -10,7 +10,7 @@ def powerset(iterable):
        :param iterable: the starting set
        """
     s = list(iterable)
-    return chain.from_iterable(combinations(s, r) for r in range(len(s)+1))
+    return chain.from_iterable(combinations(s, r) for r in range(len(s) + 1))
 
 
 def sweep(markets_num, x_coords, y_coords, max_stores_per_route):
@@ -190,18 +190,15 @@ def cluster_first_route_second(markets_num, dist, x_coords, y_coords, max_stores
     return paths, cost
 
 
-def exact_model_single_iteration(markets_num, dist, x_coords, y_coords, max_stores_per_route, truck_fixed_fee, truck_fee_per_km):
+def build_base_exact_model(markets_num, dist, max_stores_per_route, truck_fixed_fee, truck_fee_per_km):
     """
-    Solution method that is based on mip resolution
-    :param markets_num: the number of open markets
-    :param dist: the matrix containing the distances between each market
-    :param x_coords: an array containing the x coordinates of the markets
-    :param y_coords: an array containing the y coordinates of the markets
-    :param max_stores_per_route: the maximum number of markets that can be served by a single truck
+    Builds the base exact model for the VRP
+    :param markets_num: the number of markets
+    :param dist: the distance matrix containing the distance between each market
+    :param max_stores_per_route: the max number of stores in a path
     :param truck_fixed_fee: the fixed fee to pay for each truck + driver that will be used
     :param truck_fee_per_km: the fee per km to pay for the routes of the trucks
-    :return: an array containing the paths, each path is an array containing tuples that represent edges in the graph
-             and the total maintenance cost (NB: the paths are relative to the index from 0 to market_num)
+    :return:
     """
     # Initialize model and disable verbose logging
     m = mip.Model()
@@ -254,12 +251,6 @@ def exact_model_single_iteration(markets_num, dist, x_coords, y_coords, max_stor
     for i in markets:
         m.add_constr(mip.xsum(a[j, i, h] for j in markets_0 for h in trucks) == 1)
 
-    # Subtours elimination
-    for s in powerset(markets):
-        if len(s) <= max_stores_per_route + 1:
-            for h in trucks:
-                m.add_constr(mip.xsum(a[i, j, h] for i in s for j in s) <= len(s) - 1)
-
     # ##################
     # Objective function
     # ##################
@@ -270,7 +261,19 @@ def exact_model_single_iteration(markets_num, dist, x_coords, y_coords, max_stor
                  mip.xsum(mip.xsum(truck_fee_per_km * dist[i, j] * a[i, j, h] for j in markets_0) for i in markets_0)
                  for h in trucks))
 
-    # Perform optimization of the model
+    return m, u, a, markets, trucks
+
+
+def exact_model_optimize_and_get_paths(m, trucks, u, markets_num, a):
+    """
+    Utility method to optimize and parse the solution of the exact model
+    :param m: the model
+    :param trucks: the trucks
+    :param u: the u variables
+    :param markets_num: the number of markets
+    :param a: the a variables
+    :return: an array of paths, each path is an array of edges
+    """
     status = m.optimize()
 
     if status != mip.OptimizationStatus.OPTIMAL:
@@ -279,7 +282,7 @@ def exact_model_single_iteration(markets_num, dist, x_coords, y_coords, max_stor
 
     paths = []
     for h in trucks:
-        if u[h].x > 1e-5:
+        if u[h].x == 1:
             edges = []
             for i in range(markets_num):
                 for j in range(markets_num):
@@ -288,10 +291,43 @@ def exact_model_single_iteration(markets_num, dist, x_coords, y_coords, max_stor
             print(f"Path {h}: {edges}")
             paths.append(edges)
 
+    return paths
+
+
+def exact_model_single_iteration(markets_num, dist, x_coords, y_coords, max_stores_per_route, truck_fixed_fee,
+                                 truck_fee_per_km):
+    """
+    Solution method that is based on mip resolution
+    :param markets_num: the number of open markets
+    :param dist: the matrix containing the distances between each market
+    :param x_coords: an array containing the x coordinates of the markets
+    :param y_coords: an array containing the y coordinates of the markets
+    :param max_stores_per_route: the maximum number of markets that can be served by a single truck
+    :param truck_fixed_fee: the fixed fee to pay for each truck + driver that will be used
+    :param truck_fee_per_km: the fee per km to pay for the routes of the trucks
+    :return: an array containing the paths, each path is an array containing tuples that represent edges in the graph
+             and the total maintenance cost (NB: the paths are relative to the index from 0 to market_num)
+    """
+    m, u, a, markets, trucks = build_base_exact_model(markets_num, dist, max_stores_per_route, truck_fixed_fee,
+                                                      truck_fee_per_km)
+
+    # ###########
+    # Constraints
+    # ###########
+
+    # Subtours elimination
+    for s in powerset(markets):
+        if len(s) <= max_stores_per_route + 1:
+            for h in trucks:
+                m.add_constr(mip.xsum(a[i, j, h] for i in s for j in s) <= len(s) - 1)
+
+    paths = exact_model_optimize_and_get_paths(m, trucks, u, markets_num, a)
+
     return paths, m.objective_value
 
 
-def exact_model_multiple_iteration(markets_num, dist, x_coords, y_coords, max_stores_per_route, truck_fixed_fee, truck_fee_per_km):
+def exact_model_multiple_iteration(markets_num, dist, x_coords, y_coords, max_stores_per_route, truck_fixed_fee,
+                                   truck_fee_per_km):
     """
     Solution method that is based on mip resolution. At each iteration, if the solution is not feasible, a constrain is
     for the smallest subtours in the paths.
@@ -305,109 +341,21 @@ def exact_model_multiple_iteration(markets_num, dist, x_coords, y_coords, max_st
     :return: an array containing the paths, each path is an array containing tuples that represent edges in the graph
              and the total maintenance cost (NB: the paths are relative to the index from 0 to market_num)
     """
-    # Initialize model and disable verbose logging
-    m = mip.Model()
-    m.verbose = 0
-
-    # #########
-    # Sets
-    # #########
-
-    markets_0 = range(markets_num)
-    markets = range(1, markets_num)
-    trucks = range(markets_num - 1)
-
-    # #########
-    # Variables
-    # #########
-
-    # u_h: 1 if truck h is used, 0 otherwise
-    u = {h: m.add_var(var_type=mip.BINARY) for h in trucks}
-
-    # a_ijh: 1 if truck h path contains edge (i,j), 0 otherwise
-    a = {(i, j, h): m.add_var(var_type=mip.BINARY) for i in markets_0 for j in markets_0 for h in trucks}
-
-    # ###########
-    # Constraints
-    # ###########
-
-    # Every path must start from market 0
-    for h in trucks:
-        m.add_constr(mip.xsum(a[0, j, h] for j in markets) == u[h])
-
-    # Take the trucks in index order
-    for h in range(markets_num - 2):
-        m.add_constr(u[h] >= u[h + 1])
-
-    # Self loops are not allowed
-    for i in markets_0:
-        m.add_constr(mip.xsum(a[i, i, h] for h in trucks) == 0)
-
-    # The number of arcs in the backward star must be equal to the number of the forward star
-    for i in markets_0:
-        for h in trucks:
-            m.add_constr(mip.xsum(a[i, j, h] for j in markets_0) == mip.xsum(a[j, i, h] for j in markets_0))
-
-    # If the truck is chosen, the maximum number of arcs in each path must be max_stores_per_route + 1
-    for h in trucks:
-        m.add_constr(mip.xsum(a[i, j, h] for i in markets_0 for j in markets_0) <= u[h] * (max_stores_per_route + 1))
-
-    # Every node must be reached
-    for i in markets:
-        m.add_constr(mip.xsum(a[j, i, h] for j in markets_0 for h in trucks) == 1)
-
-    # ##################
-    # Objective function
-    # ##################
-
-    # Minimizes the cost of the paths
-    m.objective = mip.minimize(
-        mip.xsum(truck_fixed_fee * u[h] +
-                 mip.xsum(mip.xsum(truck_fee_per_km * dist[i, j] * a[i, j, h] for j in markets_0) for i in markets_0)
-                 for h in trucks))
+    m, u, a, markets, trucks = build_base_exact_model(markets_num, dist, max_stores_per_route, truck_fixed_fee,
+                                                      truck_fee_per_km)
 
     # Perform optimization of the model
-    status = m.optimize()
-
-    if status != mip.OptimizationStatus.OPTIMAL:
-        print(f"Problem has no optimal solution: {status}")
-        exit()
-
-    paths = []
-    for h in trucks:
-        if u[h].x > 1e-5:
-            edges = []
-            for i in range(markets_num):
-                for j in range(markets_num):
-                    if a[i, j, h].x > 1e-5:
-                        edges.append((i, j))
-            print(f"Path {h}: {edges}")
-            paths.append(edges)
+    paths = exact_model_optimize_and_get_paths(m, trucks, u, markets_num, a)
 
     subtour = find_shortest_subtour(paths)
     print(subtour)
 
-    while(subtour is not None):
+    while subtour is not None:
         # Subtour elimination
         for h in trucks:
             m.add_constr(mip.xsum(a[i, j, h] for (i, j) in subtour) <= len(subtour) - 1)
 
-
-        status = m.optimize()
-        if status != mip.OptimizationStatus.OPTIMAL:
-            print(f"Problem has no optimal solution: {status}")
-            exit()
-
-        paths = []
-        for h in trucks:
-            if u[h].x > 1e-5:
-                edges = []
-                for i in range(markets_num):
-                    for j in range(markets_num):
-                        if a[i, j, h].x > 1e-5:
-                            edges.append((i, j))
-                print(f"Path {h}: {edges}")
-                paths.append(edges)
+        paths = exact_model_optimize_and_get_paths(m, trucks, u, markets_num, a)
 
         subtour = find_shortest_subtour(paths)
         print(subtour)
