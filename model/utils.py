@@ -56,6 +56,75 @@ def build_distance_matrix(n, x_coords, y_coords):
     return dist, max_dist
 
 
+def find_shortest_subtour(paths):
+    """
+    Given a list of paths, find the shortest sub-tour, if present
+    :param paths: an array containing arrays of tuples representing edges in a graph
+    :return: an array of edges representing the shortest sub-tour or None if not found
+    """
+    min_subtour = None
+
+    for path in paths:
+        # Paths with less than 3 edges cannot have sub tours
+        if len(path) <= 2:
+            return None
+
+        # Copy to prevent array modification in caller of function
+        path = path.copy()
+
+        # The starting node of the current cycle
+        start_node = None
+        # The next node to explore
+        next_node = None
+        # A list of found cycles
+        subtours = [[]]
+        # Index of the cycle that we are currently exploring
+        current_subtour = 0
+
+        # Visit every edge in the path following the current cycle and remove it from the array
+        while len(path) > 0:
+            for edge in path:
+                if start_node is None or next_node is None:
+                    # Initialization of variables, the first cycle is the one that the first edge of the path is part of
+                    start_node = edge[0]
+                    next_node = edge[1]
+
+                    path.remove(edge)
+                    subtours[current_subtour].append(edge)
+                if edge[0] == next_node:
+                    # The next edge of the cycle has been found, proceed
+                    next_node = edge[1]
+
+                    subtours[current_subtour].append(edge)
+                    path.remove(edge)
+
+                    if next_node == start_node:
+                        # The cycle has been explored, we are back to the first node
+                        if len(subtours[current_subtour]) == 2:
+                            # If the cycle found is of length 2 it is surely one of the smallest ones, we can return it
+                            return subtours[current_subtour]
+
+                        # Initialize a new cycle to explore
+                        subtours.append([])
+                        current_subtour += 1
+                        start_node = None
+                        next_node = None
+
+        if len(subtours[current_subtour]) == 0:
+            # Delete the last array if it is empty, to avoid problems
+            del subtours[current_subtour]
+
+        if len(subtours) > 1:
+            # We have more than one cycle, let's find the smallest one
+            for subtour in subtours:
+                if min_subtour is None:
+                    min_subtour = subtour
+                elif 0 < len(subtour) < len(min_subtour):
+                    min_subtour = subtour
+
+    return min_subtour
+
+
 def pretty_print_path(edges):
     """
     Get a space-separated list of nodes that represent a path

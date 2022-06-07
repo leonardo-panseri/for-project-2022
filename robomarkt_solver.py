@@ -5,7 +5,7 @@
 from timeit import default_timer as timer
 from model.utils import get_input_length, build_distance_matrix, pretty_print_path, write_json_file
 from model.facility_location_model import find_optimal_locations
-from model.vehicle_routing_model import find_vehicle_paths
+from model.vehicle_routing_model import find_vehicle_paths, VRPSolutionStrategy
 from model.visualization import visualize_input, visualize_installation_solution, visualize_maintenance_solution
 
 # Import data, change the name of the file to change dataset
@@ -51,8 +51,10 @@ def solve(save=False, visualize=False):
                                                                    markets_y_coords)
     # Solve the vehicle routing problem for the maintenance of the markets chosen in the previous step
     time_start = timer()
+    strategy = VRPSolutionStrategy.CLUSTER_AND_ROUTE
     paths, maintenance_cost = find_vehicle_paths(installed_markets, markets_dist, markets_x_coords, markets_y_coords,
-                                                 max_stores_per_route, truck_fixed_fee, truck_fee_per_km, save)
+                                                 max_stores_per_route, truck_fixed_fee, truck_fee_per_km, save,
+                                                 strategy=strategy)
     time_end = timer()
     for i in range(len(paths)):
         print(f"Path {i + 1}: {pretty_print_path(paths[i])}")

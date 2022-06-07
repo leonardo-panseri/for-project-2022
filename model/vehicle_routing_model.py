@@ -1,17 +1,20 @@
+from enum import Enum, auto
+
 import mip
 import math
-from model.utils import build_distance_matrix, calculate_path_total_length, write_json_file
+from model.utils import build_distance_matrix, calculate_path_total_length, write_json_file, find_shortest_subtour
 from itertools import chain, combinations
 
 
-def powerset(iterable):
-    """
-       Find all the subsets of the given set
-       :param iterable: the starting set
-       """
-    s = list(iterable)
-    return chain.from_iterable(combinations(s, r) for r in range(len(s) + 1))
+class VRPSolutionStrategy(Enum):
+    EXACT_ALL_CONSTR = auto()
+    EXACT_ITERATIVE_ADD_CONSTR = auto()
+    CLUSTER_AND_ROUTE = auto()
 
+
+# ###################################
+# Cluster and route resolution method
+# ###################################
 
 def sweep(markets_num, x_coords, y_coords, max_stores_per_route):
     """
@@ -140,13 +143,12 @@ def build_tsp_model_and_optimize(markets_num, dist):
     return path
 
 
-def cluster_first_route_second(markets_num, dist, x_coords, y_coords, max_stores_per_route, truck_fixed_fee,
+def cluster_first_route_second(markets_num, x_coords, y_coords, max_stores_per_route, truck_fixed_fee,
                                truck_fee_per_km):
     """
     Solution method that is based on clustering the locations together and then connect each cluster solving the
     traveling salesmen problem with an exact model, as we have only small clusters
     :param markets_num: the number of open markets
-    :param dist: the matrix containing the distances between each market
     :param x_coords: an array containing the x coordinates of the markets
     :param y_coords: an array containing the y coordinates of the markets
     :param max_stores_per_route: the maximum number of markets that can be served by a single truck
@@ -188,6 +190,19 @@ def cluster_first_route_second(markets_num, dist, x_coords, y_coords, max_stores
     cost += truck_fixed_fee * len(paths)
 
     return paths, cost
+
+
+# #############################
+# Exact model resolution method
+# #############################
+
+def powerset(iterable):
+    """
+       Find all the subsets of the given set
+       :param iterable: the starting set
+       """
+    s = list(iterable)
+    return chain.from_iterable(combinations(s, r) for r in range(len(s) + 1))
 
 
 def build_base_exact_model(markets_num, dist, max_stores_per_route, truck_fixed_fee, truck_fee_per_km):
@@ -294,14 +309,12 @@ def exact_model_optimize_and_get_paths(m, trucks, u, markets_num, a):
     return paths
 
 
-def exact_model_single_iteration(markets_num, dist, x_coords, y_coords, max_stores_per_route, truck_fixed_fee,
+def exact_model_single_iteration(markets_num, dist, max_stores_per_route, truck_fixed_fee,
                                  truck_fee_per_km):
     """
     Solution method that is based on mip resolution
     :param markets_num: the number of open markets
     :param dist: the matrix containing the distances between each market
-    :param x_coords: an array containing the x coordinates of the markets
-    :param y_coords: an array containing the y coordinates of the markets
     :param max_stores_per_route: the maximum number of markets that can be served by a single truck
     :param truck_fixed_fee: the fixed fee to pay for each truck + driver that will be used
     :param truck_fee_per_km: the fee per km to pay for the routes of the trucks
@@ -326,15 +339,13 @@ def exact_model_single_iteration(markets_num, dist, x_coords, y_coords, max_stor
     return paths, m.objective_value
 
 
-def exact_model_multiple_iteration(markets_num, dist, x_coords, y_coords, max_stores_per_route, truck_fixed_fee,
+def exact_model_multiple_iteration(markets_num, dist, max_stores_per_route, truck_fixed_fee,
                                    truck_fee_per_km):
     """
     Solution method that is based on mip resolution. At each iteration, if the solution is not feasible, a constrain is
     for the smallest subtours in the paths.
     :param markets_num: the number of open markets
     :param dist: the matrix containing the distances between each market
-    :param x_coords: an array containing the x coordinates of the markets
-    :param y_coords: an array containing the y coordinates of the markets
     :param max_stores_per_route: the maximum number of markets that can be served by a single truck
     :param truck_fixed_fee: the fixed fee to pay for each truck + driver that will be used
     :param truck_fee_per_km: the fee per km to pay for the routes of the trucks
@@ -363,79 +374,15 @@ def exact_model_multiple_iteration(markets_num, dist, x_coords, y_coords, max_st
     return paths, m.objective_value
 
 
-def find_shortest_subtour(paths):
-    """
-    Given a list of paths, find the shortest sub-tour, if present
-    :param paths: an array containing arrays of tuples representing edges in a graph
-    :return: an array of edges representing the shortest sub-tour or None if not found
-    """
-    min_subtour = None
-
-    for path in paths:
-        # Paths with less than 3 edges cannot have sub tours
-        if len(path) <= 2:
-            return None
-
-        # Copy to prevent array modification in caller of function
-        path = path.copy()
-
-        # The starting node of the current cycle
-        start_node = None
-        # The next node to explore
-        next_node = None
-        # A list of found cycles
-        subtours = [[]]
-        # Index of the cycle that we are currently exploring
-        current_subtour = 0
-
-        # Visit every edge in the path following the current cycle and remove it from the array
-        while len(path) > 0:
-            for edge in path:
-                if start_node is None or next_node is None:
-                    # Initialization of variables, the first cycle is the one that the first edge of the path is part of
-                    start_node = edge[0]
-                    next_node = edge[1]
-
-                    path.remove(edge)
-                    subtours[current_subtour].append(edge)
-                if edge[0] == next_node:
-                    # The next edge of the cycle has been found, proceed
-                    next_node = edge[1]
-
-                    subtours[current_subtour].append(edge)
-                    path.remove(edge)
-
-                    if next_node == start_node:
-                        # The cycle has been explored, we are back to the first node
-                        if len(subtours[current_subtour]) == 2:
-                            # If the cycle found is of length 2 it is surely one of the smallest ones, we can return it
-                            return subtours[current_subtour]
-
-                        # Initialize a new cycle to explore
-                        subtours.append([])
-                        current_subtour += 1
-                        start_node = None
-                        next_node = None
-
-        if len(subtours[current_subtour]) == 0:
-            # Delete the last array if it is empty, to avoid problems
-            del subtours[current_subtour]
-
-        if len(subtours) > 1:
-            # We have more than one cycle, let's find the smallest one
-            for subtour in subtours:
-                if min_subtour is None:
-                    min_subtour = subtour
-                elif 0 < len(subtour) < len(min_subtour):
-                    min_subtour = subtour
-
-    return min_subtour
-
+# ###########
+# Entry point
+# ###########
 
 def find_vehicle_paths(installed_markets, dist, x_coords, y_coords, max_stores_per_route, truck_fixed_fee,
-                       truck_fee_per_km, save=False):
+                       truck_fee_per_km, save=False, strategy=VRPSolutionStrategy.CLUSTER_AND_ROUTE):
     """
     Finds a viable solution for the vehicle routing problem, various solution strategies can be utilized
+    :param strategy: the solution strategy to use
     :param installed_markets: the list of locations where markets are installed
     :param dist: a matrix containing the distances between each market
     :param x_coords: an array containing the x coordinates of the markets
@@ -447,10 +394,18 @@ def find_vehicle_paths(installed_markets, dist, x_coords, y_coords, max_stores_p
     :return: an array containing the paths, each path is an array containing tuples that represent edges in the graph
              and the total maintenance cost
     """
-    model = exact_model_single_iteration
-
     n = len(installed_markets)
-    paths, cost = model(n, dist, x_coords, y_coords, max_stores_per_route, truck_fixed_fee, truck_fee_per_km)
+    paths = []
+    cost = 0
+    if strategy is VRPSolutionStrategy.CLUSTER_AND_ROUTE:
+        paths, cost = cluster_first_route_second(n, x_coords, y_coords, max_stores_per_route, truck_fixed_fee,
+                                                 truck_fee_per_km)
+    elif strategy is VRPSolutionStrategy.EXACT_ITERATIVE_ADD_CONSTR:
+        paths, cost = exact_model_multiple_iteration(n, dist, max_stores_per_route, truck_fixed_fee, truck_fee_per_km)
+    elif strategy is VRPSolutionStrategy.EXACT_ALL_CONSTR:
+        paths, cost = exact_model_multiple_iteration(n, dist, max_stores_per_route, truck_fixed_fee, truck_fee_per_km)
+    else:
+        exit("Invalid solution strategy")
 
     # Since the problem is solved for locations 0 to n the paths returned need to be adjusted to the real location index
     effective_paths = [[(installed_markets[i], installed_markets[j]) for i, j in path] for path in paths]
