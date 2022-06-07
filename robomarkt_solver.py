@@ -9,7 +9,7 @@ from model.vehicle_routing_model import find_vehicle_paths
 from model.visualization import visualize_input, visualize_installation_solution, visualize_maintenance_solution
 
 # Import data, change the name of the file to change dataset
-from data.robomarkt_3 import Cx as x_coords, Cy as y_coords, usable, Dc as direct_build_costs, \
+from data.robomarkt_0 import Cx as x_coords, Cy as y_coords, usable, Dc as direct_build_costs, \
     maxdist as max_dist_from_market, mindist as min_dist_between_markets, maxstores as max_stores_per_route, \
     Fc as truck_fixed_fee, Vc as truck_fee_per_km
 
