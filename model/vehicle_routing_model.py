@@ -339,8 +339,7 @@ def exact_model_single_iteration(markets_num, dist, max_stores_per_route, truck_
     return paths, m.objective_value
 
 
-def iterative_adding_constrains(markets_num, dist, max_stores_per_route, truck_fixed_fee,
-                                   truck_fee_per_km):
+def iterative_adding_constrains(markets_num, dist, max_stores_per_route, truck_fixed_fee, truck_fee_per_km):
     """
     Solution method that is based on mip resolution. At each iteration, if the solution is not feasible, a constrain is
     for the smallest subtours in the paths.
