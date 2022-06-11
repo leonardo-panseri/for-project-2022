@@ -301,7 +301,7 @@ def exact_model_optimize_and_get_paths(m, trucks, u, markets_num, a):
             edges = []
             for i in range(markets_num):
                 for j in range(markets_num):
-                    if a[i, j, h].x > 1e-5:
+                    if a[i, j, h].x == 1:
                         edges.append((i, j))
             print(f"Path {h}: {edges}")
             paths.append(edges)
