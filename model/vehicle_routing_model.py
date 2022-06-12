@@ -51,7 +51,7 @@ def get_market_angles_with_depot_ordered(markets_num, x_coords, y_coords):
     return angles
 
 
-def sweep(markets_num, x_coords, y_coords, max_stores_per_route):
+def sweep(markets_num, x_coords, y_coords, max_stores_per_route, truck_cost_coefficient=0):
     """
     Clustering method that creates cluster based on the angle between the x-axis and each market location
     :param markets_num: the number of open markets
@@ -87,13 +87,14 @@ def sweep(markets_num, x_coords, y_coords, max_stores_per_route):
     return clusters
 
 
-def clustering_model(markets_num, x_coords, y_coords, max_stores_per_route):
+def clustering_model(markets_num, x_coords, y_coords, max_stores_per_route, truck_cost_coefficient=0):
     """
     Clustering method that creates cluster by solving a MIP model
     :param markets_num: the number of open markets
     :param x_coords: an array containing the x coordinates of the markets
     :param y_coords: an array containing the y coordinates of the markets
     :param max_stores_per_route: the maximum number of markets that can be served by a single truck
+    :param truck_cost_coefficient: a coefficient indicating how convenient buying a new truck is
     :return: a list of clusters, each cluster is a list of market indexes
     """
     # Build distance matrix
@@ -124,9 +125,9 @@ def clustering_model(markets_num, x_coords, y_coords, max_stores_per_route):
     # ##################
     # Objective function
     # ##################
-    cluster_weight = 100000
+
     # Minimizes the number of clusters and the distance between markets in each cluster
-    m.objective = mip.minimize(mip.xsum(cluster_weight * cluster[c] for c in clusters) +
+    m.objective = mip.minimize(mip.xsum(truck_cost_coefficient * cluster[c] for c in clusters) +
                                mip.xsum(dist[i, j] * y[i, j] for i in markets for j in markets if i < j))
 
     # ###########
@@ -245,7 +246,7 @@ def build_tsp_model_and_optimize(markets_num, dist):
 
 
 def cluster_first_route_second(markets_num, x_coords, y_coords, max_stores_per_route, truck_fixed_fee,
-                               truck_fee_per_km, cluster_strategy=sweep):
+                               truck_fee_per_km, cluster_strategy=sweep, truck_cost_coefficient=0):
     """
     Solution method that is based on clustering the locations together and then connect each cluster solving the
     traveling salesmen problem with an exact model, as we have only small clusters
@@ -256,11 +257,13 @@ def cluster_first_route_second(markets_num, x_coords, y_coords, max_stores_per_r
     :param max_stores_per_route: the maximum number of markets that can be served by a single truck
     :param truck_fixed_fee: the fixed fee to pay for each truck + driver that will be used
     :param truck_fee_per_km: the fee per km to pay for the routes of the trucks
+    :param truck_cost_coefficient: a coefficient indicating how convenient buying a new truck is
     :return: an array containing the paths, each path is an array containing tuples that represent edges in the graph
              and the total maintenance cost (NB: the paths are relative to the index from 0 to market_num)
     """
     # Create the clusters
-    clusters = cluster_strategy(markets_num, x_coords, y_coords, max_stores_per_route)
+    clusters = cluster_strategy(markets_num, x_coords, y_coords, max_stores_per_route,
+                                truck_cost_coefficient=truck_cost_coefficient)
 
     cost = 0
 
@@ -475,9 +478,10 @@ def iterative_adding_constrains(markets_num, dist, max_stores_per_route, truck_f
 
 def find_vehicle_paths(installed_markets, dist, x_coords, y_coords, max_stores_per_route, truck_fixed_fee,
                        truck_fee_per_km, save=False, strategy=VRPSolutionStrategy.SWEEP_CLUSTER_AND_ROUTE,
-                       json_folder=""):
+                       json_folder="", truck_cost_coefficient=0):
     """
     Finds a viable solution for the vehicle routing problem, various solution strategies can be utilized
+    :param truck_cost_coefficient: a coefficient indicating how convenient buying a new truck is
     :param json_folder: the folder where JSON results will be saved
     :param strategy: the solution strategy to use
     :param installed_markets: the list of locations where markets are installed
@@ -499,7 +503,8 @@ def find_vehicle_paths(installed_markets, dist, x_coords, y_coords, max_stores_p
                                                  truck_fee_per_km, cluster_strategy=sweep)
     elif strategy is VRPSolutionStrategy.MODEL_CLUSTER_AND_ROUTE:
         paths, cost = cluster_first_route_second(n, x_coords, y_coords, max_stores_per_route, truck_fixed_fee,
-                                                 truck_fee_per_km, cluster_strategy=clustering_model)
+                                                 truck_fee_per_km, cluster_strategy=clustering_model,
+                                                 truck_cost_coefficient=truck_cost_coefficient)
     elif strategy is VRPSolutionStrategy.ITERATIVE_ADD_CONSTR:
         paths, cost = iterative_adding_constrains(n, dist, max_stores_per_route, truck_fixed_fee, truck_fee_per_km)
     elif strategy is VRPSolutionStrategy.EXACT_ALL_CONSTR:

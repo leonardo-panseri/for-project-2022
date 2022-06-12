@@ -25,7 +25,7 @@ distance_matrix, max_dist_between_locations = build_distance_matrix(locations_nu
 #                       exponential constraint number.
 #                       Optimal, but slowest.
 #   - EXACT_ITERATIVE_ADD_CONSTR: a MIP formulation of the problem without sub-tours elimination constraints,
-#                                 these constraints get added iteratively to eliminate the smallest sub-tour found
+#                                 these constraints are added iteratively to eliminate the smallest sub-tour found
 #                                 in the current solution until a feasible solution is found.
 #                                 Very close to optimal, but still slow.
 #   - MODEL_CLUSTER_AND_ROUTE: heuristic approach that divides markets in clusters based on a MIP model and then
@@ -34,6 +34,12 @@ distance_matrix, max_dist_between_locations = build_distance_matrix(locations_nu
 #   - SWEEP_CLUSTER_AND_ROUTE: heuristic approach that divides markets in clusters based on their position and then
 #                              finds the optimal path in each cluster.
 #                              Not optimal, but really fast.
+# The third is better than the fourth if the truck fee per km has more weight than the fixed fee to get a new truck
+# and driver (so with longer paths and/or more distanced locations.
+# Since that in the data that has been given to us the fixed fee weights a lot more than the the fee per km,
+# the SWEEP_CLUSTER_AND_ROUTE approach is chosen as the default one.
+# To obtain better solution in reasonable (but much longer) time, the EXACT_ITERATIVE_ADD_CONSTR approach can be
+# used if the instances are not much bigger than those given for testing.
 
 vehicle_routing_strategy = VRPSolutionStrategy.SWEEP_CLUSTER_AND_ROUTE
 
@@ -77,7 +83,8 @@ def solve(save=False, visualize=False):
     time_start = timer()
     paths, maintenance_cost = find_vehicle_paths(installed_markets, markets_dist, markets_x_coords, markets_y_coords,
                                                  max_stores_per_route, truck_fixed_fee, truck_fee_per_km, save,
-                                                 vehicle_routing_strategy, json_folder)
+                                                 vehicle_routing_strategy, json_folder,
+                                                 truck_fixed_fee / truck_fee_per_km)
     output_text = ""
     time_end = timer()
     for i in range(len(paths)):
