@@ -61,6 +61,10 @@ def sweep(markets_num, x_coords, y_coords, max_stores_per_route):
         del angles[i]
         i -= 1
 
+    # Remove the last cluster if it is empty
+    if len(clusters[curr_cluster]) == 0:
+        del clusters[curr_cluster]
+
     return clusters
 
 
