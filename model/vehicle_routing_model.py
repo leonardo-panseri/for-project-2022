@@ -118,16 +118,16 @@ def clustering_model(markets_num, x_coords, y_coords, max_stores_per_route):
     cluster = {c: m.add_var(var_type=mip.BINARY, lb=0, ub=markets_num - 1) for c in clusters}
     # x_ic: 1 if market i is assigned to cluster c, 0 otherwise
     x = {(i, c): m.add_var(var_type=mip.BINARY) for i in markets for c in clusters}
-    # y_ijc: 1 if markets i and j belong to the same cluster c
-    y = {(i, j, c): m.add_var(var_type=mip.BINARY) for i in markets for j in markets for c in clusters}
+    # y_ij: 1 if markets i and j belong to the same cluster
+    y = {(i, j): m.add_var(var_type=mip.BINARY) for i in markets for j in markets}
 
     # ##################
     # Objective function
     # ##################
-    cluster_weight = 10000
+    cluster_weight = 100000
     # Minimizes the number of clusters and the distance between markets in each cluster
     m.objective = mip.minimize(mip.xsum(cluster_weight * cluster[c] for c in clusters) +
-                               mip.xsum(dist[i, j] * y[i, j, c] for i in markets for j in markets for c in clusters))
+                               mip.xsum(dist[i, j] * y[i, j] for i in markets for j in markets if i < j))
 
     # ###########
     # Constraints
@@ -149,7 +149,8 @@ def clustering_model(markets_num, x_coords, y_coords, max_stores_per_route):
     for c in clusters:
         for i in markets:
             for j in markets:
-                m.add_constr(y[i, j, c] >= (x[i, c] + x[j, c] - 1))
+                if i < j:
+                    m.add_constr(y[i, j] >= (x[i, c] + x[j, c] - 1))
 
     m.optimize()
 

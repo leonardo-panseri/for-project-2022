@@ -9,7 +9,7 @@ from model.vehicle_routing_model import find_vehicle_paths, VRPSolutionStrategy
 from model.visualization import visualize_input, visualize_installation_solution, visualize_maintenance_solution
 
 # Import data, change the name of the file to change dataset
-from data.robomarkt_0 import Cx as x_coords, Cy as y_coords, usable, Dc as direct_build_costs, \
+from data.robomarkt_2 import Cx as x_coords, Cy as y_coords, usable, Dc as direct_build_costs, \
     maxdist as max_dist_from_market, mindist as min_dist_between_markets, maxstores as max_stores_per_route, \
     Fc as truck_fixed_fee, Vc as truck_fee_per_km
 
@@ -34,6 +34,7 @@ distance_matrix, max_dist_between_locations = build_distance_matrix(locations_nu
 #   - SWEEP_CLUSTER_AND_ROUTE: heuristic approach that divides markets in clusters based on their position and then
 #                              finds the optimal path in each cluster.
 #                              Not optimal, but really fast.
+
 vehicle_routing_strategy = VRPSolutionStrategy.SWEEP_CLUSTER_AND_ROUTE
 
 # Folders where the output files will be saved
