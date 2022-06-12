@@ -79,6 +79,10 @@ def sweep(markets_num, x_coords, y_coords, max_stores_per_route):
     if len(clusters[curr_cluster]) == 0:
         del clusters[curr_cluster]
 
+    for cluster in clusters:
+        # Append node 0 to each cluster, as it is the depot and we need it in the path
+        cluster.append(0)
+
     return clusters
 
 
@@ -109,7 +113,7 @@ def advanced_sweep(markets_num, x_coords, y_coords, max_stores_per_route):
     # Variables
     # #########
 
-    # Number of clusters
+    # cluster_c: 1 if cluster i is not empty, 0 otherwise
     cluster = {c: m.add_var(var_type=mip.BINARY, lb=0, ub=markets_num - 1) for c in clusters}
     # x_ic: 1 if market i is assigned to cluster c, 0 otherwise
     x = {(i, c): m.add_var(var_type=mip.BINARY) for i in markets for c in clusters}
@@ -121,7 +125,7 @@ def advanced_sweep(markets_num, x_coords, y_coords, max_stores_per_route):
     # ##################
     cluster_weight = 10000
     # Minimizes the number of clusters and the distance between markets in each cluster
-    m.objective = mip.minimize(cluster_weight * cluster +
+    m.objective = mip.minimize(mip.xsum(cluster_weight * cluster[c] for c in clusters) +
                                mip.xsum(dist[i, j] * y[i, j, c] for i in markets for j in markets for c in clusters))
 
     # ###########
@@ -132,7 +136,31 @@ def advanced_sweep(markets_num, x_coords, y_coords, max_stores_per_route):
     for i in markets_wo_depot:
         m.add_constr(mip.xsum(x[i, c] for c in clusters) == 1)
 
-    return []
+    for c in range(markets_num - 2):
+        m.add_constr(cluster[c] >= cluster[c + 1])
+
+    for c in clusters:
+        m.add_constr(mip.xsum(x[i, c] for i in markets) <= (max_stores_per_route + 1) * cluster[c])
+
+    for c in clusters:
+        m.add_constr(x[0, c] == cluster[c])
+
+    for c in clusters:
+        for i in markets:
+            for j in markets:
+                m.add_constr(y[i, j, c] >= (x[i, c] + x[j, c] - 1))
+
+    m.optimize()
+
+    result = []
+    for c in clusters:
+        if cluster[c].x == 1:
+            result.append([])
+            for i in markets:
+                if x[i, c].x == 1:
+                    result[-1].append(i)
+
+    return result
 
 
 def tsp_optimize_and_get_paths(m, markets, x):
@@ -228,7 +256,7 @@ def cluster_first_route_second(markets_num, x_coords, y_coords, max_stores_per_r
     :return: an array containing the paths, each path is an array containing tuples that represent edges in the graph
              and the total maintenance cost (NB: the paths are relative to the index from 0 to market_num)
     """
-    clustering_method = sweep
+    clustering_method = advanced_sweep
 
     # Create the clusters
     clusters = clustering_method(markets_num, x_coords, y_coords, max_stores_per_route)
@@ -237,9 +265,6 @@ def cluster_first_route_second(markets_num, x_coords, y_coords, max_stores_per_r
 
     paths = []
     for cluster in clusters:
-        # Append node 0 to each cluster, as it is the depot and we need it in the path
-        cluster.append(0)
-
         n = len(cluster)
         # Create arrays of coordinates for the cluster and the distance matrix
         cluster_x_coords = [x_coords[i] for i in cluster]
