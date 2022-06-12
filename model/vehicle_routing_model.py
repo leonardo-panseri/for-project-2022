@@ -402,7 +402,7 @@ def find_vehicle_paths(installed_markets, dist, x_coords, y_coords, max_stores_p
     elif strategy is VRPSolutionStrategy.ITERATIVE_ADD_CONSTR:
         paths, cost = iterative_adding_constrains(n, dist, max_stores_per_route, truck_fixed_fee, truck_fee_per_km)
     elif strategy is VRPSolutionStrategy.EXACT_ALL_CONSTR:
-        paths, cost = iterative_adding_constrains(n, dist, max_stores_per_route, truck_fixed_fee, truck_fee_per_km)
+        paths, cost = exact_model_single_iteration(n, dist, max_stores_per_route, truck_fixed_fee, truck_fee_per_km)
     else:
         exit("Invalid solution strategy")
 
