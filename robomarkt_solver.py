@@ -28,10 +28,13 @@ distance_matrix, max_dist_between_locations = build_distance_matrix(locations_nu
 #                                 these constraints get added iteratively to eliminate the smallest sub-tour found
 #                                 in the current solution until a feasible solution is found.
 #                                 Very close to optimal, but still slow.
-#   - CLUSTER_AND_ROUTE: heuristic approach that divides markets in cluster based on their position and then finds
-#                        the optimal path in each cluster.
-#                        Not optimal, but really fast.
-vehicle_routing_strategy = VRPSolutionStrategy.CLUSTER_AND_ROUTE
+#   - MODEL_CLUSTER_AND_ROUTE: heuristic approach that divides markets in clusters based on a MIP model and then
+#                              finds the optimal path in each cluster.
+#                              Not optimal, much faster than the first two approaches, but slower than the fourth.
+#   - SWEEP_CLUSTER_AND_ROUTE: heuristic approach that divides markets in clusters based on their position and then
+#                              finds the optimal path in each cluster.
+#                              Not optimal, but really fast.
+vehicle_routing_strategy = VRPSolutionStrategy.SWEEP_CLUSTER_AND_ROUTE
 
 
 def solve(save=False, visualize=False):

@@ -9,7 +9,8 @@ from itertools import chain, combinations
 class VRPSolutionStrategy(Enum):
     EXACT_ALL_CONSTR = auto()
     ITERATIVE_ADD_CONSTR = auto()
-    CLUSTER_AND_ROUTE = auto()
+    SWEEP_CLUSTER_AND_ROUTE = auto()
+    MODEL_CLUSTER_AND_ROUTE = auto()
 
 
 # ###################################
@@ -86,9 +87,9 @@ def sweep(markets_num, x_coords, y_coords, max_stores_per_route):
     return clusters
 
 
-def advanced_sweep(markets_num, x_coords, y_coords, max_stores_per_route):
+def clustering_model(markets_num, x_coords, y_coords, max_stores_per_route):
     """
-    Clustering method that creates cluster based on the angle between the x-axis and each market location
+    Clustering method that creates cluster by solving a MIP model
     :param markets_num: the number of open markets
     :param x_coords: an array containing the x coordinates of the markets
     :param y_coords: an array containing the y coordinates of the markets
@@ -243,10 +244,11 @@ def build_tsp_model_and_optimize(markets_num, dist):
 
 
 def cluster_first_route_second(markets_num, x_coords, y_coords, max_stores_per_route, truck_fixed_fee,
-                               truck_fee_per_km):
+                               truck_fee_per_km, cluster_strategy=sweep):
     """
     Solution method that is based on clustering the locations together and then connect each cluster solving the
     traveling salesmen problem with an exact model, as we have only small clusters
+    :param cluster_strategy: the strategy to use to form clusters (sweep or clustering_model)
     :param markets_num: the number of open markets
     :param x_coords: an array containing the x coordinates of the markets
     :param y_coords: an array containing the y coordinates of the markets
@@ -256,10 +258,8 @@ def cluster_first_route_second(markets_num, x_coords, y_coords, max_stores_per_r
     :return: an array containing the paths, each path is an array containing tuples that represent edges in the graph
              and the total maintenance cost (NB: the paths are relative to the index from 0 to market_num)
     """
-    clustering_method = advanced_sweep
-
     # Create the clusters
-    clusters = clustering_method(markets_num, x_coords, y_coords, max_stores_per_route)
+    clusters = cluster_strategy(markets_num, x_coords, y_coords, max_stores_per_route)
 
     cost = 0
 
@@ -473,7 +473,7 @@ def iterative_adding_constrains(markets_num, dist, max_stores_per_route, truck_f
 # ###########
 
 def find_vehicle_paths(installed_markets, dist, x_coords, y_coords, max_stores_per_route, truck_fixed_fee,
-                       truck_fee_per_km, save=False, strategy=VRPSolutionStrategy.CLUSTER_AND_ROUTE):
+                       truck_fee_per_km, save=False, strategy=VRPSolutionStrategy.SWEEP_CLUSTER_AND_ROUTE):
     """
     Finds a viable solution for the vehicle routing problem, various solution strategies can be utilized
     :param strategy: the solution strategy to use
@@ -491,9 +491,12 @@ def find_vehicle_paths(installed_markets, dist, x_coords, y_coords, max_stores_p
     n = len(installed_markets)
     paths = []
     cost = 0
-    if strategy is VRPSolutionStrategy.CLUSTER_AND_ROUTE:
+    if strategy is VRPSolutionStrategy.SWEEP_CLUSTER_AND_ROUTE:
         paths, cost = cluster_first_route_second(n, x_coords, y_coords, max_stores_per_route, truck_fixed_fee,
-                                                 truck_fee_per_km)
+                                                 truck_fee_per_km, cluster_strategy=sweep)
+    elif strategy is VRPSolutionStrategy.MODEL_CLUSTER_AND_ROUTE:
+        paths, cost = cluster_first_route_second(n, x_coords, y_coords, max_stores_per_route, truck_fixed_fee,
+                                                 truck_fee_per_km, cluster_strategy=clustering_model)
     elif strategy is VRPSolutionStrategy.ITERATIVE_ADD_CONSTR:
         paths, cost = iterative_adding_constrains(n, dist, max_stores_per_route, truck_fixed_fee, truck_fee_per_km)
     elif strategy is VRPSolutionStrategy.EXACT_ALL_CONSTR:
