@@ -36,6 +36,10 @@ distance_matrix, max_dist_between_locations = build_distance_matrix(locations_nu
 #                              Not optimal, but really fast.
 vehicle_routing_strategy = VRPSolutionStrategy.SWEEP_CLUSTER_AND_ROUTE
 
+# Folders where the output files will be saved
+json_folder = "out/"
+html_folder = "out/html/"
+
 
 def solve(save=False, visualize=False):
     """
@@ -51,14 +55,14 @@ def solve(save=False, visualize=False):
         data = {"locations_num": locations_num, "max_dist_from_market": max_dist_from_market,
                 "min_dist_between_markets": min_dist_between_markets, "max_stores_per_route": max_stores_per_route,
                 "coords": coords, "usable": usable, "direct_build_costs": direct_build_costs, "dist": dist_values}
-        write_json_file("input.json", data)
+        write_json_file(json_folder, "input.json", data)
 
     # Solve the location facility part of the problem, finding where to install markets to minimize build cost
     # and to serve every customer
     time_start = timer()
     installed_markets, installation_cost = find_optimal_locations(locations_num, distance_matrix, x_coords, y_coords,
                                                                   usable, direct_build_costs, max_dist_from_market,
-                                                                  min_dist_between_markets, save)
+                                                                  min_dist_between_markets, save, json_folder)
     time_end = timer()
     print("Shops: " + " ".join([str(el) for el in installed_markets]))
     installation_exec_time = time_end - time_start
@@ -72,27 +76,32 @@ def solve(save=False, visualize=False):
     time_start = timer()
     paths, maintenance_cost = find_vehicle_paths(installed_markets, markets_dist, markets_x_coords, markets_y_coords,
                                                  max_stores_per_route, truck_fixed_fee, truck_fee_per_km, save,
-                                                 strategy=vehicle_routing_strategy)
+                                                 vehicle_routing_strategy, json_folder)
+    output_text = ""
     time_end = timer()
     for i in range(len(paths)):
-        print(f"Path {i + 1}: {pretty_print_path(paths[i])}")
+        output_text += f"Path {i + 1}: {pretty_print_path(paths[i])}\n"
     maintenance_exec_time = time_end - time_start
 
     # Print the costs of the two solutions and the total cost
-    print("\n==== Costs ====")
-    print(f"Installation cost: {round(installation_cost, 2)}")
-    print(f"Maintenance cost: {round(maintenance_cost, 2)}")
-    print(f"Total cost: {round(installation_cost + maintenance_cost, 2)}")
+    output_text += "\n==== Costs ====\n"
+    output_text += f"Installation cost: {round(installation_cost, 2)}\n"
+    output_text += f"Maintenance cost: {round(maintenance_cost, 2)}\n"
+    output_text += f"Total cost: {round(installation_cost + maintenance_cost, 2)}\n"
 
     # Print the time taken to solve both parts of the problem
-    print("\n==== Execution Time ====")
-    print(f"Installation: {round(installation_exec_time, 2)} s")
-    print(f"Maintenance: {round(maintenance_exec_time, 2)} s")
-    print(f"Total execution time: {round(installation_exec_time + maintenance_exec_time, 2)} s")
+    output_text += "\n==== Execution Time ====\n"
+    output_text += f"Installation: {round(installation_exec_time, 2)} s\n"
+    output_text += f"Maintenance: {round(maintenance_exec_time, 2)} s\n"
+    output_text += f"Total execution time: {round(installation_exec_time + maintenance_exec_time, 2)} s\n"
+
+    print(output_text)
 
     if visualize:
-        visualize_installation_solution()
-        visualize_maintenance_solution()
+        visualize_installation_solution(html_folder, json_folder)
+        visualize_maintenance_solution(html_folder, json_folder)
+
+    return output_text
 
 
 if __name__ == '__main__':
@@ -103,12 +112,48 @@ if __name__ == '__main__':
         if argv[1] == "save":  # Find optimal solution, save it to file and visualize it
             solve(True, True)
             exit()
-        elif argv[1] == "visualize":  # Visualize solution previously saved to file
-            visualize_installation_solution()
-            exit()
         elif argv[1] == "visualizeinput":  # Visualize input data
-            visualize_input()
+            visualize_input(html_folder, json_folder)
             exit()
+        elif argv[1] == "benchmark":  # Solve all instances of the problem with the given methods and save all results
+            import importlib
+
+            data_files = [str(i) for i in range(5)] + ["big_" + str(i) for i in range(4)]
+            strategies = [VRPSolutionStrategy.SWEEP_CLUSTER_AND_ROUTE, VRPSolutionStrategy.MODEL_CLUSTER_AND_ROUTE]
+
+            for data_file in data_files:
+                for strategy in strategies:
+                    strategy_str = str(strategy).replace("VRPSolutionStrategy.", "")
+
+                    print(f"====== Solving robomarkt_{data_file} - {strategy_str} ======")
+
+                    data = importlib.import_module("data.robomarkt_" + data_file)
+                    x_coords = data.Cx
+                    y_coords = data.Cy
+                    usable = data.usable
+                    direct_build_costs = data.Dc
+                    max_dist_from_market = data.maxdist
+                    min_dist_between_markets = data.mindist
+                    max_stores_per_route = data.maxstores
+                    truck_fixed_fee = data.Fc
+                    truck_fee_per_km = data.Vc
+
+                    vehicle_routing_strategy = strategy
+
+                    locations_num = get_input_length(x_coords, y_coords, usable, direct_build_costs)
+                    distance_matrix, max_dist_between_locations = build_distance_matrix(locations_num, x_coords, y_coords)
+
+                    json_folder = f"out/{data_file}/{strategy_str}/json/"
+                    html_folder = f"out/{data_file}/{strategy_str}/html/"
+
+                    output_text = solve(True, True)
+                    with open(f"out/{data_file}/{strategy_str}/log.txt", "w") as f:
+                        f.write(output_text)
+
+                    print("\n")
+
+            exit()
+
 
 # In any case (import of the module or execution as a script) optimize the model and print the result
 solve()

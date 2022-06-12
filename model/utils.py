@@ -45,9 +45,6 @@ def build_distance_matrix(n, x_coords, y_coords):
         for j in range(n):
             new_dist = distance(x_coords[i], y_coords[i], x_coords[j], y_coords[j])
 
-            if new_dist == 0 and i != j:
-                print(f"WARNING: dist[{i}, {j}] is 0")
-
             dist[i, j] = new_dist
 
             if new_dist > max_dist:
@@ -169,16 +166,16 @@ def calculate_path_total_length(edges, dist):
     return tot_dist
 
 
-def write_json_file(file_name, data):
+def write_json_file(json_folder, file_name, data):
     """
     Converts data to JSON and writes it to the file at the given path
+    :param json_folder: the folder where the JSON file will be saved
     :param file_name: the name of the file to write
     :param data: any python object that can be converted to JSON
     """
-    folder = "out/"
-    if not os.path.exists("out/html/"):
-        os.makedirs("out/html/")
+    if not os.path.exists(json_folder):
+        os.makedirs(json_folder)
 
-    f = open(folder + file_name, "w")
+    f = open(json_folder + file_name, "w")
     f.write(json.dumps(data))
     f.close()

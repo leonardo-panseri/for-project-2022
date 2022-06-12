@@ -1,20 +1,22 @@
 import json
+import os
 
 
-def load_data_from_files(input_only=False):
+def load_data_from_files(json_folder, input_only=False):
     """
     Load data from JSON files and returns it
     :return: the input and results data from the JSON files in out/ directory
     """
     data = {}
-    with open("out/input.json") as f_input:
+    with open(json_folder + "input.json") as f_input:
         input_data = json.loads(f_input.read())
         input_data["coords"] = {int(k): v for k, v in input_data["coords"].items()}
         data.update(input_data)
 
         if not input_only:
 
-            with open("out/location_results.json") as f_location, open("out/maintenance_results.json") as f_maintenance:
+            with open(json_folder + "location_results.json") as f_location, \
+                    open(json_folder + "maintenance_results.json") as f_maintenance:
                 location_data = json.loads(f_location.read())
                 data.update(location_data)
 
@@ -24,15 +26,19 @@ def load_data_from_files(input_only=False):
     return data
 
 
-def build_base_graph(n, radius):
+def build_base_graph(n, radius, html_folder):
     """
     Constructs a base PyVis network graph with fixed positioning and a legend
     :param n: the number of nodes
     :param radius: the maximum radius for the problem
     :return: a PyVis Network
+    :param html_folder: the folder where the graph HTML file will be saved
     """
     from pyvis.network import Network
     import networkx as nx
+
+    if not os.path.exists(html_folder):
+        os.makedirs(html_folder)
 
     net = Network('100%', '100%')
 
@@ -81,12 +87,14 @@ def build_base_graph(n, radius):
     return net
 
 
-def visualize_installation_solution(scale=20):
+def visualize_installation_solution(html_folder, json_folder, scale=20):
     """
     Constructs a network graph to visualize the market installation solution and shows it
+    :param html_folder: the folder where the graph HTML file will be saved
+    :param json_folder: the folder where the graph JSON file are saved
     :param scale: multiplicative factor for coordinates to show nodes more distanced (default: 20)
     """
-    data = load_data_from_files()
+    data = load_data_from_files(json_folder)
     installed_markets = data["installed_markets"]
     adj_matrix = data["adj_matrix"]
     locations_num = data["locations_num"]
@@ -96,7 +104,7 @@ def visualize_installation_solution(scale=20):
     direct_build_costs = data["direct_build_costs"]
     dist = data["dist"]
 
-    net = build_base_graph(locations_num, max_dist_from_market)
+    net = build_base_graph(locations_num, max_dist_from_market, html_folder)
 
     locations = range(locations_num)
 
@@ -114,22 +122,24 @@ def visualize_installation_solution(scale=20):
                 color = "green"
                 net.add_edge(i, j, label=str(round(dist[i][j], 1)), color=color)
 
-    net.show("out/html/installation_result.html")
+    net.show(html_folder + "installation_result.html")
 
 
-def visualize_maintenance_solution(scale=20):
+def visualize_maintenance_solution(html_folder, json_folder, scale=20):
     """
     Constructs a network graph to visualize the market maintenance solution and shows it
+    :param html_folder: the folder where the graph HTML file will be saved
+    :param json_folder: the folder where the graph JSON file are saved
     :param scale: multiplicative factor for coordinates to show nodes more distanced (default: 20)
     """
-    data = load_data_from_files()
+    data = load_data_from_files(json_folder)
     installed_markets = data["installed_markets"]
     coords = data["coords"]
     max_dist_from_market = data["max_dist_from_market"]
     dist = data["dist"]
     maintenance_paths = data["maintenance_paths"]
 
-    net = build_base_graph(max(installed_markets) + 1, max_dist_from_market)
+    net = build_base_graph(max(installed_markets) + 1, max_dist_from_market, html_folder)
 
     for i in installed_markets:
         # Add all markets as nodes of the graph
@@ -141,15 +151,17 @@ def visualize_maintenance_solution(scale=20):
             i, j = edge
             net.add_edge(i, j, label=str(round(dist[i][j], 1)))
 
-    net.show("out/html/maintenance_result.html")
+    net.show(html_folder + "maintenance_result.html")
 
 
-def visualize_input(scale=20):
+def visualize_input(html_folder, json_folder, scale=20):
     """
     Constructs a network graph to visualize the input data and shows it
+    :param html_folder: the folder where the graph HTML file will be saved
+    :param json_folder: the folder where the graph JSON file are saved
     :param scale: multiplicative factor for coordinates to show nodes more distanced (default: 20)
     """
-    data = load_data_from_files(True)
+    data = load_data_from_files(json_folder, True)
     locations_num = data["locations_num"]
     usable = data["usable"]
     coords = data["coords"]
@@ -157,7 +169,7 @@ def visualize_input(scale=20):
     direct_build_costs = data["direct_build_costs"]
     dist = data["dist"]
 
-    net = build_base_graph(locations_num, max_dist_from_market)
+    net = build_base_graph(locations_num, max_dist_from_market, html_folder)
 
     locations = range(locations_num)
     market_locations = [i for i in locations if usable[i]]
@@ -175,4 +187,4 @@ def visualize_input(scale=20):
                     # Add all edges that connect nodes in range of each other colored black
                     net.add_edge(i, j, color="black", label=round(dist[i][j], 1))
 
-    net.show("out/html/input.html")
+    net.show(html_folder + "input.html")

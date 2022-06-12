@@ -473,9 +473,11 @@ def iterative_adding_constrains(markets_num, dist, max_stores_per_route, truck_f
 # ###########
 
 def find_vehicle_paths(installed_markets, dist, x_coords, y_coords, max_stores_per_route, truck_fixed_fee,
-                       truck_fee_per_km, save=False, strategy=VRPSolutionStrategy.SWEEP_CLUSTER_AND_ROUTE):
+                       truck_fee_per_km, save=False, strategy=VRPSolutionStrategy.SWEEP_CLUSTER_AND_ROUTE,
+                       json_folder=""):
     """
     Finds a viable solution for the vehicle routing problem, various solution strategies can be utilized
+    :param json_folder: the folder where JSON results will be saved
     :param strategy: the solution strategy to use
     :param installed_markets: the list of locations where markets are installed
     :param dist: a matrix containing the distances between each market
@@ -509,6 +511,6 @@ def find_vehicle_paths(installed_markets, dist, x_coords, y_coords, max_stores_p
 
     if save:
         data = {"maintenance_paths": effective_paths, "maintenance_cost": cost}
-        write_json_file("maintenance_results.json", data)
+        write_json_file(json_folder, "maintenance_results.json", data)
 
     return effective_paths, cost

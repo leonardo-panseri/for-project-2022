@@ -80,9 +80,10 @@ def build_location_model_and_optimize(all_locations, market_locations, dist, dir
 
 
 def find_optimal_locations(n, dist, x_coords, y_coords, usable, direct_build_costs,
-                           max_dist_from_market, min_dist_between_markets, save=False):
+                           max_dist_from_market, min_dist_between_markets, save=False, json_folder="out/"):
     """
     Finds the optimal solution for the location problem
+    :param json_folder: the folder where JSON results will be saved
     :param n: the number of locations in input
     :param dist: a nxn matrix containing distances between every location
     :param x_coords: the array containing the x coordinates for each location
@@ -114,6 +115,6 @@ def find_optimal_locations(n, dist, x_coords, y_coords, usable, direct_build_cos
         # Save input of model and optimal solution to a JSON file
         x_values = [[x[i, j].x if j in market_locations else 0 for j in all_locations] for i in all_locations]
         data = {"installed_markets": installed_markets, "installation_cost": obj_value, "adj_matrix": x_values}
-        write_json_file("location_results.json", data)
+        write_json_file(json_folder, "location_results.json", data)
 
     return installed_markets, obj_value
