@@ -8,7 +8,7 @@ from itertools import chain, combinations
 
 class VRPSolutionStrategy(Enum):
     EXACT_ALL_CONSTR = auto()
-    EXACT_ITERATIVE_ADD_CONSTR = auto()
+    ITERATIVE_ADD_CONSTR = auto()
     CLUSTER_AND_ROUTE = auto()
 
 
@@ -400,7 +400,7 @@ def find_vehicle_paths(installed_markets, dist, x_coords, y_coords, max_stores_p
     if strategy is VRPSolutionStrategy.CLUSTER_AND_ROUTE:
         paths, cost = cluster_first_route_second(n, x_coords, y_coords, max_stores_per_route, truck_fixed_fee,
                                                  truck_fee_per_km)
-    elif strategy is VRPSolutionStrategy.EXACT_ITERATIVE_ADD_CONSTR:
+    elif strategy is VRPSolutionStrategy.ITERATIVE_ADD_CONSTR:
         paths, cost = exact_model_multiple_iteration(n, dist, max_stores_per_route, truck_fixed_fee, truck_fee_per_km)
     elif strategy is VRPSolutionStrategy.EXACT_ALL_CONSTR:
         paths, cost = exact_model_multiple_iteration(n, dist, max_stores_per_route, truck_fixed_fee, truck_fee_per_km)

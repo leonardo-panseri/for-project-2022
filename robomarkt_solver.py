@@ -17,6 +17,17 @@ from data.robomarkt_0 import Cx as x_coords, Cy as y_coords, usable, Dc as direc
 locations_num = get_input_length(x_coords, y_coords, usable, direct_build_costs)
 distance_matrix, max_dist_between_locations = build_distance_matrix(locations_num, x_coords, y_coords)
 
+# ############################################################
+# Strategy to use to solve the maintenance part of the problem
+# ############################################################
+# There are four possible solution strategies implemented, enumerated in the VRPSolutionStrategy enum:
+#   - EXACT_ALL_CONSTR: a complete MIP formulation of the problem, very difficult to solve because of
+#                       exponential constraint number, slowest
+#   - EXACT_ITERATIVE_ADD_CONSTR: a MIP formulation of the problem without sub-tours elimination constraints,
+#                                 these constraints
+#   - CLUSTER_AND_ROUTE
+vehicle_routing_strategy = VRPSolutionStrategy.CLUSTER_AND_ROUTE
+
 
 def solve(save=False, visualize=False):
     """
@@ -51,10 +62,9 @@ def solve(save=False, visualize=False):
                                                                    markets_y_coords)
     # Solve the vehicle routing problem for the maintenance of the markets chosen in the previous step
     time_start = timer()
-    strategy = VRPSolutionStrategy.CLUSTER_AND_ROUTE
     paths, maintenance_cost = find_vehicle_paths(installed_markets, markets_dist, markets_x_coords, markets_y_coords,
                                                  max_stores_per_route, truck_fixed_fee, truck_fee_per_km, save,
-                                                 strategy=strategy)
+                                                 strategy=vehicle_routing_strategy)
     time_end = timer()
     for i in range(len(paths)):
         print(f"Path {i + 1}: {pretty_print_path(paths[i])}")
