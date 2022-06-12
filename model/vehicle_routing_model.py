@@ -205,7 +205,7 @@ def powerset(iterable):
     return chain.from_iterable(combinations(s, r) for r in range(len(s) + 1))
 
 
-def build_base_exact_model(markets_num, dist, max_stores_per_route, truck_fixed_fee, truck_fee_per_km):
+def build_base_model(markets_num, dist, max_stores_per_route, truck_fixed_fee, truck_fee_per_km):
     """
     Builds the base exact model for the VRP
     :param markets_num: the number of markets
@@ -279,9 +279,9 @@ def build_base_exact_model(markets_num, dist, max_stores_per_route, truck_fixed_
     return m, u, a, markets, trucks
 
 
-def exact_model_optimize_and_get_paths(m, trucks, u, markets_num, a):
+def model_optimize_and_get_paths(m, trucks, u, markets_num, a):
     """
-    Utility method to optimize and parse the solution of the exact model
+    Utility method to optimize and parse the solution of the model
     :param m: the model
     :param trucks: the trucks
     :param u: the u variables
@@ -320,8 +320,8 @@ def exact_model(markets_num, dist, max_stores_per_route, truck_fixed_fee, truck_
     :return: an array containing the paths, each path is an array containing tuples that represent edges in the graph
              and the total maintenance cost (NB: the paths are relative to the index from 0 to market_num)
     """
-    m, u, a, markets, trucks = build_base_exact_model(markets_num, dist, max_stores_per_route, truck_fixed_fee,
-                                                      truck_fee_per_km)
+    m, u, a, markets, trucks = build_base_model(markets_num, dist, max_stores_per_route, truck_fixed_fee,
+                                                truck_fee_per_km)
 
     # ###########
     # Constraints
@@ -333,7 +333,7 @@ def exact_model(markets_num, dist, max_stores_per_route, truck_fixed_fee, truck_
             for h in trucks:
                 m.add_constr(mip.xsum(a[i, j, h] for i in s for j in s) <= len(s) - 1)
 
-    paths = exact_model_optimize_and_get_paths(m, trucks, u, markets_num, a)
+    paths = model_optimize_and_get_paths(m, trucks, u, markets_num, a)
 
     return paths, m.objective_value
 
@@ -350,11 +350,11 @@ def iterative_adding_constrains(markets_num, dist, max_stores_per_route, truck_f
     :return: an array containing the paths, each path is an array containing tuples that represent edges in the graph
              and the total maintenance cost (NB: the paths are relative to the index from 0 to market_num)
     """
-    m, u, a, markets, trucks = build_base_exact_model(markets_num, dist, max_stores_per_route, truck_fixed_fee,
-                                                      truck_fee_per_km)
+    m, u, a, markets, trucks = build_base_model(markets_num, dist, max_stores_per_route, truck_fixed_fee,
+                                                truck_fee_per_km)
 
     # Perform optimization of the model
-    paths = exact_model_optimize_and_get_paths(m, trucks, u, markets_num, a)
+    paths = model_optimize_and_get_paths(m, trucks, u, markets_num, a)
 
     subtour = find_shortest_subtour(paths)
     print(subtour)
@@ -364,7 +364,7 @@ def iterative_adding_constrains(markets_num, dist, max_stores_per_route, truck_f
         for h in trucks:
             m.add_constr(mip.xsum(a[i, j, h] for (i, j) in subtour) <= len(subtour) - 1)
 
-        paths = exact_model_optimize_and_get_paths(m, trucks, u, markets_num, a)
+        paths = model_optimize_and_get_paths(m, trucks, u, markets_num, a)
 
         subtour = find_shortest_subtour(paths)
         print(subtour)
