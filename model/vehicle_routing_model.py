@@ -16,14 +16,14 @@ class VRPSolutionStrategy(Enum):
 # Cluster and route resolution method
 # ###################################
 
-def sweep(markets_num, x_coords, y_coords, max_stores_per_route):
+def get_market_angles_with_depot_ordered(markets_num, x_coords, y_coords):
     """
-    Clustering method that creates cluster based on the angle between the x-axis and each market location
+    Calculates angle of each market respective to the x axis of the cartesian plane centered in the depot location and
+    orders them in descending order
     :param markets_num: the number of open markets
     :param x_coords: an array containing the x coordinates of the markets
     :param y_coords: an array containing the y coordinates of the markets
-    :param max_stores_per_route: the maximum number of markets that can be served by a single truck
-    :return: a list of clusters, each cluster is a list of market indexes
+    :return: an ordered array containing an object with the index of the market and its angle respect to the depot
     """
     # Translate all coordinates to have cartesian origin in the first location (depot)
     x_0 = x_coords[0]
@@ -47,6 +47,20 @@ def sweep(markets_num, x_coords, y_coords, max_stores_per_route):
     # Sort the list in descending order
     angles.sort(key=lambda x: x["angle"], reverse=True)
 
+    return angles
+
+
+def sweep(markets_num, x_coords, y_coords, max_stores_per_route):
+    """
+    Clustering method that creates cluster based on the angle between the x-axis and each market location
+    :param markets_num: the number of open markets
+    :param x_coords: an array containing the x coordinates of the markets
+    :param y_coords: an array containing the y coordinates of the markets
+    :param max_stores_per_route: the maximum number of markets that can be served by a single truck
+    :return: a list of clusters, each cluster is a list of market indexes
+    """
+    angles = get_market_angles_with_depot_ordered(markets_num, x_coords, y_coords)
+
     # Build the list of clusters, each of them can contain up to 'max_stores_per_route' elements
     clusters = [[]]
     i = len(angles) - 1
@@ -66,6 +80,59 @@ def sweep(markets_num, x_coords, y_coords, max_stores_per_route):
         del clusters[curr_cluster]
 
     return clusters
+
+
+def advanced_sweep(markets_num, x_coords, y_coords, max_stores_per_route):
+    """
+    Clustering method that creates cluster based on the angle between the x-axis and each market location
+    :param markets_num: the number of open markets
+    :param x_coords: an array containing the x coordinates of the markets
+    :param y_coords: an array containing the y coordinates of the markets
+    :param max_stores_per_route: the maximum number of markets that can be served by a single truck
+    :return: a list of clusters, each cluster is a list of market indexes
+    """
+    # Build distance matrix
+    dist, _ = build_distance_matrix(markets_num, x_coords, y_coords)
+
+    # Initialize model and disable verbose logging
+    m = mip.Model()
+    m.verbose = 0
+
+    # ####
+    # Sets
+    # ####
+    markets = range(markets_num)
+    markets_wo_depot = range(1, markets_num)
+    clusters = range(markets_num - 1)
+
+    # #########
+    # Variables
+    # #########
+
+    # Number of clusters
+    cluster = {c: m.add_var(var_type=mip.BINARY, lb=0, ub=markets_num - 1) for c in clusters}
+    # x_ic: 1 if market i is assigned to cluster c, 0 otherwise
+    x = {(i, c): m.add_var(var_type=mip.BINARY) for i in markets for c in clusters}
+    # y_ijc: 1 if markets i and j belong to the same cluster c
+    y = {(i, j, c): m.add_var(var_type=mip.BINARY) for i in markets for j in markets for c in clusters}
+
+    # ##################
+    # Objective function
+    # ##################
+    cluster_weight = 10000
+    # Minimizes the number of clusters and the distance between markets in each cluster
+    m.objective = mip.minimize(cluster_weight * cluster +
+                               mip.xsum(dist[i, j] * y[i, j, c] for i in markets for j in markets for c in clusters))
+
+    # ###########
+    # Constraints
+    # ###########
+
+    # Ensures that every market is assigned to exactly 1 cluster
+    for i in markets_wo_depot:
+        m.add_constr(mip.xsum(x[i, c] for c in clusters) == 1)
+
+    return []
 
 
 def tsp_optimize_and_get_paths(m, markets, x):
