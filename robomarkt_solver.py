@@ -22,10 +22,15 @@ distance_matrix, max_dist_between_locations = build_distance_matrix(locations_nu
 # ############################################################
 # There are four possible solution strategies implemented, enumerated in the VRPSolutionStrategy enum:
 #   - EXACT_ALL_CONSTR: a complete MIP formulation of the problem, very difficult to solve because of
-#                       exponential constraint number, slowest
+#                       exponential constraint number.
+#                       Optimal, but slowest.
 #   - EXACT_ITERATIVE_ADD_CONSTR: a MIP formulation of the problem without sub-tours elimination constraints,
-#                                 these constraints
-#   - CLUSTER_AND_ROUTE
+#                                 these constraints get added iteratively to eliminate the smallest sub-tour found
+#                                 in the current solution until a feasible solution is found.
+#                                 Very close to optimal, but still slow.
+#   - CLUSTER_AND_ROUTE: heuristic approach that divides markets in cluster based on their position and then finds
+#                        the optimal path in each cluster.
+#                        Not optimal, but really fast.
 vehicle_routing_strategy = VRPSolutionStrategy.CLUSTER_AND_ROUTE
 
 

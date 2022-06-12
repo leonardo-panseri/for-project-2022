@@ -309,8 +309,7 @@ def exact_model_optimize_and_get_paths(m, trucks, u, markets_num, a):
     return paths
 
 
-def exact_model_single_iteration(markets_num, dist, max_stores_per_route, truck_fixed_fee,
-                                 truck_fee_per_km):
+def exact_model(markets_num, dist, max_stores_per_route, truck_fixed_fee, truck_fee_per_km):
     """
     Solution method that is based on mip resolution
     :param markets_num: the number of open markets
@@ -402,7 +401,7 @@ def find_vehicle_paths(installed_markets, dist, x_coords, y_coords, max_stores_p
     elif strategy is VRPSolutionStrategy.ITERATIVE_ADD_CONSTR:
         paths, cost = iterative_adding_constrains(n, dist, max_stores_per_route, truck_fixed_fee, truck_fee_per_km)
     elif strategy is VRPSolutionStrategy.EXACT_ALL_CONSTR:
-        paths, cost = exact_model_single_iteration(n, dist, max_stores_per_route, truck_fixed_fee, truck_fee_per_km)
+        paths, cost = exact_model(n, dist, max_stores_per_route, truck_fixed_fee, truck_fee_per_km)
     else:
         exit("Invalid solution strategy")
 
