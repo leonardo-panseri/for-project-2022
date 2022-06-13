@@ -120,7 +120,7 @@ if __name__ == '__main__':
             import importlib
 
             data_files = [str(i) for i in range(5)] + ["big_" + str(i) for i in range(4)]
-            strategies = [VRPSolutionStrategy.SWEEP_CLUSTER_AND_ROUTE]
+            strategies = [VRPSolutionStrategy.SWEEP_CLUSTER_AND_ROUTE, VRPSolutionStrategy.ITERATIVE_ADD_CONSTR]
 
             for data_file in data_files:
                 for strategy in strategies:

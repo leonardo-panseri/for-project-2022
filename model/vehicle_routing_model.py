@@ -338,7 +338,6 @@ def model_optimize_and_get_paths(m, trucks, u, markets_num, a):
                 for j in range(markets_num):
                     if a[i, j, h].x == 1:
                         edges.append((i, j))
-            print(f"Path {h}: {edges}")
             paths.append(edges)
 
     return paths
@@ -392,7 +391,6 @@ def iterative_adding_constrains(markets_num, dist, max_stores_per_route, truck_f
     paths = model_optimize_and_get_paths(m, trucks, u, markets_num, a)
 
     subtour = find_shortest_subtour(paths)
-    print(subtour)
 
     while subtour is not None:
         # Subtour elimination
@@ -402,7 +400,6 @@ def iterative_adding_constrains(markets_num, dist, max_stores_per_route, truck_f
         paths = model_optimize_and_get_paths(m, trucks, u, markets_num, a)
 
         subtour = find_shortest_subtour(paths)
-        print(subtour)
 
     return paths, m.objective_value
 
