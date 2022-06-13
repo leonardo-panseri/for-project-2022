@@ -24,7 +24,7 @@ distance_matrix, max_dist_between_locations = build_distance_matrix(locations_nu
 #   - EXACT_ALL_CONSTR: a complete MIP formulation of the problem, very difficult to solve because of
 #                       exponential constraint number.
 #                       Optimal, but slowest.
-#   - EXACT_ITERATIVE_ADD_CONSTR: a MIP formulation of the problem without sub-tours elimination constraints,
+#   - ITERATIVE_ADD_CONSTR: a MIP formulation of the problem without sub-tours elimination constraints,
 #                                 these constraints are added iteratively to eliminate the smallest sub-tour found
 #                                 in the current solution until a feasible solution is found.
 #                                 Very close to optimal, but still slow.
@@ -32,10 +32,10 @@ distance_matrix, max_dist_between_locations = build_distance_matrix(locations_nu
 #                              finds the optimal path in each cluster.
 #                              Not optimal, but really fast.
 # Since the heuristic approach can find a good solution much quicker than the other approaches, it is the default one.
-# To obtain a better solution in reasonable (but much longer) time, the EXACT_ITERATIVE_ADD_CONSTR approach can be
+# To obtain a better solution in reasonable (but much longer) time, the ITERATIVE_ADD_CONSTR approach can be
 # used if the instances are not much bigger than those given for testing.
 
-vehicle_routing_strategy = VRPSolutionStrategy.SWEEP_CLUSTER_AND_ROUTE
+vehicle_routing_strategy = VRPSolutionStrategy.ITERATIVE_ADD_CONSTR
 
 # Folders where the output files will be saved
 json_folder = "out/"

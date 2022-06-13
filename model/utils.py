@@ -64,7 +64,7 @@ def find_shortest_subtour(paths):
     for path in paths:
         # Paths with less than 3 edges cannot have sub tours
         if len(path) <= 2:
-            return None
+            continue
 
         # Copy to prevent array modification in caller of function
         path = path.copy()
