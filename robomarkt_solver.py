@@ -28,16 +28,9 @@ distance_matrix, max_dist_between_locations = build_distance_matrix(locations_nu
 #                                 these constraints are added iteratively to eliminate the smallest sub-tour found
 #                                 in the current solution until a feasible solution is found.
 #                                 Very close to optimal, but still slow.
-#   - MODEL_CLUSTER_AND_ROUTE: heuristic approach that divides markets in clusters based on a MIP model and then
-#                              finds the optimal path in each cluster.
-#                              Not optimal, much faster than the first two approaches, but slower than the fourth.
 #   - SWEEP_CLUSTER_AND_ROUTE: heuristic approach that divides markets in clusters based on their position and then
 #                              finds the optimal path in each cluster.
 #                              Not optimal, but really fast.
-# The third is better than the fourth if the truck fee per km has more weight than the fixed fee to get a new truck
-# and driver (so with longer paths and/or more distanced locations).
-# While if the fixed fee is higher, it is better to use less trucks and to fill all the used trucks with the
-# maximum number of stores.
 # Since that in the data that has been given to us the fixed fee weights a lot more than the fee per km,
 # the SWEEP_CLUSTER_AND_ROUTE approach is chosen as the default one.
 # To obtain better solution in reasonable (but much longer) time, the EXACT_ITERATIVE_ADD_CONSTR approach can be
@@ -85,8 +78,7 @@ def solve(save=False, visualize=False):
     time_start = timer()
     paths, maintenance_cost = find_vehicle_paths(installed_markets, markets_dist, markets_x_coords, markets_y_coords,
                                                  max_stores_per_route, truck_fixed_fee, truck_fee_per_km, save,
-                                                 vehicle_routing_strategy, json_folder,
-                                                 truck_fixed_fee / truck_fee_per_km)
+                                                 vehicle_routing_strategy, json_folder)
     output_text = ""
     time_end = timer()
     for i in range(len(paths)):
@@ -129,7 +121,7 @@ if __name__ == '__main__':
             import importlib
 
             data_files = [str(i) for i in range(5)] + ["big_" + str(i) for i in range(4)]
-            strategies = [VRPSolutionStrategy.SWEEP_CLUSTER_AND_ROUTE, VRPSolutionStrategy.MODEL_CLUSTER_AND_ROUTE]
+            strategies = [VRPSolutionStrategy.SWEEP_CLUSTER_AND_ROUTE]
 
             for data_file in data_files:
                 for strategy in strategies:
