@@ -16,13 +16,14 @@ class VRPSolutionStrategy(Enum):
 # Cluster and route resolution method
 # ###################################
 
-def get_market_angles_with_depot_ordered(markets_num, x_coords, y_coords):
+def get_market_angles_with_depot_ordered(markets_num, x_coords, y_coords, offset):
     """
     Calculates angle of each market respective to the x axis of the cartesian plane centered in the depot location and
-    orders them in descending order
+    orders them in ascending order from 'offset' to '2pi + offset'
     :param markets_num: the number of open markets
     :param x_coords: an array containing the x coordinates of the markets
     :param y_coords: an array containing the y coordinates of the markets
+    :param offset: the offset where to start the sweep
     :return: an ordered array containing an object with the index of the market and its angle respect to the depot
     """
     # Translate all coordinates to have cartesian origin in the first location (depot)
@@ -36,16 +37,16 @@ def get_market_angles_with_depot_ordered(markets_num, x_coords, y_coords):
     # Calculate the angle of each market respective of the x-axis
     angles = []
     for i in range(1, markets_num):
-        angle_rad = math.atan2(y_coords[i], x_coords[i])
+        angle_rad = math.atan2(y_coords[i], x_coords[i]) - offset
         if angle_rad < 0:
-            angle_rad += 2 * math.pi
+            angle_rad %= 2 * math.pi
         angles.append({
             "index": i,
             "angle": angle_rad
         })
 
-    # Sort the list in descending order
-    angles.sort(key=lambda x: x["angle"], reverse=True)
+    # Sort the list in ascending order
+    angles.sort(key=lambda x: x["angle"])
 
     return angles
 
@@ -57,33 +58,39 @@ def sweep(markets_num, x_coords, y_coords, max_stores_per_route):
     :param x_coords: an array containing the x coordinates of the markets
     :param y_coords: an array containing the y coordinates of the markets
     :param max_stores_per_route: the maximum number of markets that can be served by a single truck
-    :return: a list of clusters, each cluster is a list of market indexes
+    :return: a list containing different sets of clusters. Each set is a list of clusters, each cluster is a list of
+             market indexes
     """
-    angles = get_market_angles_with_depot_ordered(markets_num, x_coords, y_coords)
+    offsets = [0, math.pi / 2, math.pi, math.pi * 3 / 2]
+    result = []
+    for offset in offsets:
+        angles = get_market_angles_with_depot_ordered(markets_num, x_coords, y_coords, offset)
 
-    # Build the list of clusters, each of them can contain up to 'max_stores_per_route' elements
-    clusters = [[]]
-    i = len(angles) - 1
-    curr_cluster = 0
-    while len(angles) > 0:
-        if len(clusters[curr_cluster]) == max_stores_per_route:
-            curr_cluster += 1
-            clusters.append([])
+        # Build the list of clusters, each of them can contain up to 'max_stores_per_route' elements
+        clusters = [[]]
+        i = len(angles) - 1
+        curr_cluster = 0
+        while len(angles) > 0:
+            if len(clusters[curr_cluster]) == max_stores_per_route:
+                curr_cluster += 1
+                clusters.append([])
 
-        clusters[curr_cluster].append(angles[i]["index"])
+            clusters[curr_cluster].append(angles[i]["index"])
 
-        del angles[i]
-        i -= 1
+            del angles[i]
+            i -= 1
 
-    # Remove the last cluster if it is empty
-    if len(clusters[curr_cluster]) == 0:
-        del clusters[curr_cluster]
+        # Remove the last cluster if it is empty
+        if len(clusters[curr_cluster]) == 0:
+            del clusters[curr_cluster]
 
-    for cluster in clusters:
-        # Append node 0 to each cluster, as it is the depot and we need it in the path
-        cluster.append(0)
+        for cluster in clusters:
+            # Append node 0 to each cluster, as it is the depot and we need it in the path
+            cluster.append(0)
 
-    return clusters
+        result.append(clusters)
+
+    return result
 
 
 def tsp_optimize_and_get_paths(m, markets, x):
@@ -181,33 +188,43 @@ def cluster_first_route_second(markets_num, x_coords, y_coords, max_stores_per_r
              and the total maintenance cost (NB: the paths are relative to the index from 0 to market_num)
     """
     # Create the clusters
-    clusters = cluster_strategy(markets_num, x_coords, y_coords, max_stores_per_route)
+    set_of_clusters = cluster_strategy(markets_num, x_coords, y_coords, max_stores_per_route)
 
     cost = 0
 
-    paths = []
-    for cluster in clusters:
-        n = len(cluster)
-        # Create arrays of coordinates for the cluster and the distance matrix
-        cluster_x_coords = [x_coords[i] for i in cluster]
-        cluster_y_coords = [y_coords[i] for i in cluster]
-        cluster_dist, _ = build_distance_matrix(n, cluster_x_coords, cluster_y_coords)
+    best_paths = []
+    best_cost = None
+    # To obtain better solutions the clustering strategy can return different clustering results, iterate over
+    # each one of the results to find which is the best one
+    for clusters in set_of_clusters:
+        paths = []
+        for cluster in clusters:
+            n = len(cluster)
+            # Create arrays of coordinates for the cluster and the distance matrix
+            cluster_x_coords = [x_coords[i] for i in cluster]
+            cluster_y_coords = [y_coords[i] for i in cluster]
+            cluster_dist, _ = build_distance_matrix(n, cluster_x_coords, cluster_y_coords)
 
-        # Solve the TSP in the cluster
-        path = build_tsp_model_and_optimize(n, cluster_dist)
+            # Solve the TSP in the cluster
+            path = build_tsp_model_and_optimize(n, cluster_dist)
 
-        # Translate the edges indexes to be relative to the market indexes
-        effective_path = [(cluster[i], cluster[j]) for i, j in path]
+            # Translate the edges indexes to be relative to the market indexes
+            effective_path = [(cluster[i], cluster[j]) for i, j in path]
 
-        paths.append(effective_path)
+            paths.append(effective_path)
 
-        # Calculate the cost of this path and add it to the total
-        cost += calculate_path_total_length(path, cluster_dist) * truck_fee_per_km
+            # Calculate the cost of this path and add it to the total
+            cost += calculate_path_total_length(path, cluster_dist) * truck_fee_per_km
 
-    # Add the fixed cost to the total
-    cost += truck_fixed_fee * len(paths)
+        # Add the fixed cost to the total
+        cost += truck_fixed_fee * len(paths)
 
-    return paths, cost
+        # Keep only the best solution
+        if best_cost is None or cost < best_cost:
+            best_cost = cost
+            best_paths = paths
+
+    return best_paths, best_cost
 
 
 # #############################
