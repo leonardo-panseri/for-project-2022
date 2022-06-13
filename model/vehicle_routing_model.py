@@ -110,6 +110,7 @@ def clustering_model(markets_num, x_coords, y_coords, max_stores_per_route, truc
     markets = range(markets_num)
     markets_wo_depot = range(1, markets_num)
     clusters = range(markets_num - 1)
+    cluster_weight = max_stores_per_route * (max_stores_per_route - 1)
 
     # #########
     # Variables
@@ -127,7 +128,7 @@ def clustering_model(markets_num, x_coords, y_coords, max_stores_per_route, truc
     # ##################
 
     # Minimizes the number of clusters and the distance between markets in each cluster
-    m.objective = mip.minimize(mip.xsum(truck_cost_coefficient * cluster[c] for c in clusters) +
+    m.objective = mip.minimize(mip.xsum(cluster_weight * truck_cost_coefficient * cluster[c] for c in clusters) +
                                mip.xsum(dist[i, j] * y[i, j] for i in markets for j in markets if i < j))
 
     # ###########
