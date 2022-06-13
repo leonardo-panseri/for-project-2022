@@ -35,7 +35,7 @@ distance_matrix, max_dist_between_locations = build_distance_matrix(locations_nu
 # To obtain a better solution in reasonable (but much longer) time, the ITERATIVE_ADD_CONSTR approach can be
 # used if the instances are not much bigger than those given for testing.
 
-vehicle_routing_strategy = VRPSolutionStrategy.ITERATIVE_ADD_CONSTR
+vehicle_routing_strategy = VRPSolutionStrategy.SWEEP_CLUSTER_AND_ROUTE
 
 # Folders where the output files will be saved
 json_folder = "out/"
