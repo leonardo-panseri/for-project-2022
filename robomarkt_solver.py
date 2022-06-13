@@ -35,8 +35,10 @@ distance_matrix, max_dist_between_locations = build_distance_matrix(locations_nu
 #                              finds the optimal path in each cluster.
 #                              Not optimal, but really fast.
 # The third is better than the fourth if the truck fee per km has more weight than the fixed fee to get a new truck
-# and driver (so with longer paths and/or more distanced locations.
-# Since that in the data that has been given to us the fixed fee weights a lot more than the the fee per km,
+# and driver (so with longer paths and/or more distanced locations).
+# While if the fixed fee is higher, it is better to use less trucks and to fill all the used trucks with the
+# maximum number of stores.
+# Since that in the data that has been given to us the fixed fee weights a lot more than the fee per km,
 # the SWEEP_CLUSTER_AND_ROUTE approach is chosen as the default one.
 # To obtain better solution in reasonable (but much longer) time, the EXACT_ITERATIVE_ADD_CONSTR approach can be
 # used if the instances are not much bigger than those given for testing.
