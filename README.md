@@ -1,4 +1,4 @@
 # Foundations of Operative Research Project @ Polimi
-## VRP
+## Vehicle routing problem
 Project grade: 14/14  
 Miniproject grade : 4/4
