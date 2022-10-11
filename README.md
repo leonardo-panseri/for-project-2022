@@ -4,7 +4,7 @@ Professor: Federico Malucelli
 Project grade: 14/14  
 Miniproject grade : 4/4
 
-Model for a veichle routing problem for a fictional company "RoboMarkt" that needs to keep shops stocked in large rural areas. The model has been implemented for Python modelling tool [MIP](https://www.python-mip.com/). 
+Model for a vehicle routing problem for a fictional company "RoboMarkt" that needs to keep shops stocked in large rural areas. The model has been implemented for Python modelling tool [MIP](https://www.python-mip.com/). 
 Three solution strategy with different accuracies and computational cost have been implemented, including an heuristic for efficiently solving the VRP without deviating much from the optimal solution.
 
 ## Usage
