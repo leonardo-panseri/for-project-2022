@@ -13,7 +13,7 @@ Miniproject grade: 4/4
 
 ## Problem
 ### Miniproject
-For a detailed description: [Problem](https://github.com/leonardo-panseri/for-project-2022/blob/mini-project/project.pdf)
+For a detailed description: [Problem](https://github.com/leonardo-panseri/for-project-2022/blob/mini-project/project.pdf)  
 More about this project in the mini-project branch
 
 ### Final Project
