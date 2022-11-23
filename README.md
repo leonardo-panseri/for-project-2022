@@ -24,6 +24,10 @@ For a detailed description: [Problem](https://github.com/leonardo-panseri/for-pr
 ## Solutions
 Three solution strategies with different accuracies and computational costs have been implemented, including a heuristic for efficiently solving the VRP without deviating much from the optimal solution.
 
+- EXACT_ALL_CONSTR: a complete MIP formulation of the problem, very difficult to solve because of exponential constraint number. Optimal, but slowest.
+- ITERATIVE_ADD_CONSTR: a MIP formulation of the problem without sub-tours elimination constraints, these constraints are added iteratively to eliminate the smallest sub-tour found in the current solution until a feasible solution is found. Very close to optimal, but still slow.
+- SWEEP_CLUSTER_AND_ROUTE: heuristic approach that divides markets in clusters based on their position and then finds the optimal path in each cluster. Not optimal, but really fast.
+
 ## Usage
 - Change input data in [robomarkt_solver.py](https://github.com/leonardo-panseri/for-project-2022/blob/30a96135b40e3458e5acb1865d755aa7ca72a1e7/robomarkt_solver.py#L12) (it is imported from a Python file similar to the ones in *data/*)
 - Install required packages
