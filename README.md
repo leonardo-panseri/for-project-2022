@@ -1,8 +1,13 @@
 # Foundations of Operative Research Project @ PoliMi - Vehicle routing problem
 Professor: Federico Malucelli
 
+## Grades
 Project grade: 14/14  
 Miniproject grade : 4/4
+
+## Team Members
+* [Leonardo Panseri](https://github.com/leonardo-panseri)
+* [Viola Renne](https://github.com/viols-code)
 
 Model for a vehicle routing problem for a fictional company "RoboMarkt" that needs to keep shops stocked in large rural areas. The model has been implemented for Python modelling tool [MIP](https://www.python-mip.com/). 
 
