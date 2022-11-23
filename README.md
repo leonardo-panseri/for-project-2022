@@ -10,8 +10,8 @@ Miniproject grade: 4/4
 * [Viola Renne](https://github.com/viols-code)
 
 ## Problem
-Model for a vehicle routing problem for a fictional company "RoboMarkt" that needs to keep shops stocked in large rural areas. The model has been implemented for Python modelling tool [MIP](https://www.python-mip.com/).
-For a detaile description: [Problem](https://github.com/leonardo-panseri/for-project-2022/blob/master/project.pdf)
+Model for a vehicle routing problem for a fictional company "RoboMarkt" that needs to keep shops stocked in large rural areas. The model has been implemented for Python modelling tool [MIP](https://www.python-mip.com/).  
+For a detailed description: [Problem](https://github.com/leonardo-panseri/for-project-2022/blob/master/project.pdf)
 
 ## Solutions
 Three solution strategies with different accuracies and computational costs have been implemented, including a heuristic for efficiently solving the VRP without deviating much from the optimal solution.
