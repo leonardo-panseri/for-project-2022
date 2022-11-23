@@ -3,6 +3,8 @@ Operational Research course final project
 Professor: Federico Malucelli  
 Tutor: Ing. Belotti Pietro Luigi
 
+<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original-wordmark.svg" width="40"/>
+
 ## Grades
 Project grade: 14/14  
 Miniproject grade: 4/4
