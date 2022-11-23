@@ -1,5 +1,6 @@
 # Foundations of Operative Research Project @ PoliMi - Vehicle routing problem
-Professor: Federico Malucelli
+Operational Research course final project  
+Professor: Federico Malucelli  
 Tutor: Ing. Belotti Pietro Luigi
 
 ## Grades
