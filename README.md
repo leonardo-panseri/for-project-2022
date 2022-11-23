@@ -12,6 +12,11 @@ Miniproject grade: 4/4
 * [Viola Renne](https://github.com/viols-code)
 
 ## Problem
+### Miniproject
+For a detailed description: [Problem](https://github.com/leonardo-panseri/for-project-2022/blob/mini-project/project.pdf)
+More about this project in the mini-project branch
+
+### Final Project
 Model for a vehicle routing problem for a fictional company "RoboMarkt" that needs to keep shops stocked in large rural areas. The model has been implemented for Python modelling tool [MIP](https://www.python-mip.com/).  
 For a detailed description: [Problem](https://github.com/leonardo-panseri/for-project-2022/blob/master/project.pdf)
 
