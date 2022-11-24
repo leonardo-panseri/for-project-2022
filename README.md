@@ -39,3 +39,8 @@ Three solution strategies with different accuracies and computational costs have
     pip install -r requirements.txt
 - Run the script
     python robomarkt.py
+  
+## Visualisation
+In addition to the three solutions, we implemented a HTML page that show the results. In particular, the node 0 is the position of the starting point of all trucks for the VRP, while the other nodes are the shops that need to be restocked. In this HTML page is possible to see the path of the different trucks. This example is based on the data0
+<img src="https://github.com/leonardo-panseri/for-project-2022/blob/master/images/screenshot.png">
+    
